@@ -188,7 +188,7 @@ with entry {
         f.write("window.TRACE = " + json.dumps(trace) + ";");
     }
     # and a single hostable file with the trace inlined, for deployment
-    with open("web/index.html") as src { page = src.read(); }
+    with open("web/board.html") as src { page = src.read(); }
     page = page.replace('<script src="trace.js"></script>',
                         "<script>window.TRACE = " + json.dumps(trace) + ";</script>");
     with open("web/standalone.html", "w") as f { f.write(page); }
