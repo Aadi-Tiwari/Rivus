@@ -1,6 +1,6 @@
 """PipeTrace demo run. Every number printed is computed during this run."""
 
-include pipetrace;
+include diagnose;
 
 walker ResetGraph {
     """Jac persists the graph to disk between runs, so a second run would stack another
