@@ -135,6 +135,15 @@ stacks another copy of the network onto root and every count silently doubles.
 The incident board reads `web/trace.json`, which `jac/main.jac` writes from the run you
 just did. Nothing in it is hardcoded.
 
+`web/standalone.html` is the same board with that trace inlined — one 33 KB file, no
+fetch, no server, no external requests. That is the version to host.
+
+`jac/serve.jac` exposes the same walkers over REST via `jac start jac/serve.jac`.
+Honest caveat: the 0.16.7 dev server gates every walker endpoint behind auth and the
+`__specs__ { has auth: bool = False; }` block does not open them on this version, so the
+endpoints return 401 without a token. The CLI and the static board are the paths that
+work today.
+
 ## Honest limits
 
 - Net2 is an EPA sample network, not a utility's calibrated model. It draws 20.4 L/s, so
