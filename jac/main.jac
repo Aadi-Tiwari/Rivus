@@ -43,7 +43,7 @@ with entry {
     wiped = root spawn ResetGraph();
     if wiped.removed > 0 { print(f"[reset] cleared {wiped.removed} stale nodes"); }
 
-    print("PipeTrace — active leak diagnosis\n");
+    print("Rivus — active leak diagnosis\n");
     ing = root spawn IngestNetwork();
     print(f"[setup] critical facility node {CRITICAL_NODE}, floor {CRITICAL_MIN_PSI:.0f} psi");
     print(f"[setup] gauge noise {GAUGE_NOISE} psi + model error {MODEL_ERROR} psi "

@@ -1,11 +1,11 @@
-# PipeTrace
+# Rivus
 
 **Tells a water crew which measurement to take next, says out loud when pressure cannot
 identify one pipe, and searches valve configurations before anyone turns one.**
 
 A district is losing treated water underground. Thirty-five junctions could be
 responsible. Checking one costs about an hour of a two-person crew, and opening the
-wrong street costs about twenty thousand dollars. PipeTrace runs a real EPANET
+wrong street costs about twenty thousand dollars. Rivus runs a real EPANET
 hydraulic simulation for every candidate leak, keeps a belief over all of them on a Jac
 graph, and ranks every measurement the crew could take by how much uncertainty it would
 remove per crew-hour.
