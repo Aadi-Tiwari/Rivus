@@ -181,3 +181,44 @@ def credible_set(hyps: list, mass: float) -> list {
 }
 
 # ------------------------------------------------------------- identifiability
+
+
+# ------------------------------------------------------- non-circularity evidence
+glob DIVERGENCE: dict = {"n": 0, "sum": 0.0, "worst": 1e9, "cleared": 0};
+
+walker CheckNonCircularity {
+    """Proves the diagnosis is not inverting its own simulator.
+
+    StageIncident draws the crew's readings from a perturbed model. That defence is
+    only real if the perturbed residual actually departs from the nominal forward
+    model by more than gauge noise. If it does not, the perturbation is cosmetic and
+    the whole evaluation is circular. This measures the gap instead of asserting it.
+    """
+    has truth: str;
+    has median: float = 0.0;
+    has worst: float = 0.0;
+    has cleared: float = 0.0;
+
+    can check with entry {
+        sig = [];
+        for h in of_type([-->], Hypothesis) {
+            if h.location == self.truth { sig = h.signature; }
+        }
+        if len(sig) == 0 { disengage; }
+        diffs = [];
+        for (i, j) in enumerate(NODES) {
+            diffs.append(abs(OBSERVED[j] - sig[i]));
+        }
+        diffs.sort();
+        n = len(diffs);
+        above = 0;
+        for d in diffs { if d > GAUGE_NOISE { above += 1; } }
+        self.median = diffs[n // 2];
+        self.worst = diffs[0];
+        self.cleared = above / n;
+        DIVERGENCE["n"] += 1;
+        DIVERGENCE["sum"] += self.median;
+        DIVERGENCE["cleared"] += self.cleared;
+        if self.median < DIVERGENCE["worst"] { DIVERGENCE["worst"] = self.median; }
+    }
+}

@@ -79,13 +79,16 @@ walker RunArm {
     has hops: int = 0;
     has survivors: int = 0;
     has crew_min: float = 0.0;
+    has spent: int = 0;
 
     can run with entry {
         root spawn ResetBelief();
         juncs = of_type([-->], Junction);
         crew = "1";
         step = 0;
-        while step < self.probes {
+        budget = self.probes;
+        if self.arm == "adaptive" { budget = ADAPTIVE_MAX; }
+        while step < budget {
             chosen = "";
             bits = 0.0;
             mins = 0.0;
@@ -110,6 +113,9 @@ walker RunArm {
                 chosen = best[1];
                 bits = best[2];
                 mins = best[3];
+                # Adaptive arm: a probe that buys less than STOP_BITS is a crew sent
+                # out for nothing. Stop rather than spend the budget for its own sake.
+                if self.arm == "adaptive" and step > 0 and bits < STOP_BITS { break; }
             }
             reading = read_gauge(chosen);
             tp = root spawn TakeProbe(location=chosen, reading=reading);
@@ -118,6 +124,7 @@ walker RunArm {
             crew = chosen;
             step += 1;
         }
+        self.spent = step;
 
         hyps = of_type([-->], Hypothesis);
         pairs = [];
@@ -135,6 +142,8 @@ walker RunArm {
 
 glob EVAL_DRAWS: int = 300;   # matches the demo's Monte Carlo resolution
 glob EVAL_SEEDS: int = 3;     # 35 locations x 3 seeds = 105 incidents per arm
+glob ADAPTIVE_MAX: int = 3;   # same budget as the other arms, so it can only stop EARLY
+glob STOP_BITS: float = 0.35; # a probe buying less than this is not worth a crew dispatch
 
 
 with entry {
@@ -149,17 +158,18 @@ with entry {
           f"(demand {DEMAND_CV:.0%} CV, roughness {ROUGH_CV:.0%} CV)");
     print(f"  3 probes per incident, {EVAL_DRAWS} Monte Carlo draws, {EVAL_SEEDS} seeds\n");
 
-    arms = ["info", "cost", "random"];
+    arms = ["info", "cost", "adaptive", "random"];
     labels = {"info": "max information gain", "cost": "bits per crew-hour",
-              "random": "random probes (control)"};
+              "adaptive": "adaptive stopping", "random": "random probes (control)"};
     stats = {};
-    for a in arms { stats[a] = [0, 0, 0, 0, 0.0, 0]; }   # n, top1, top3, top5, hops, crew
+    for a in arms { stats[a] = [0, 0, 0, 0, 0.0, 0, 0]; }  # n, top1, top3, top5, hops, crew, probes
 
     idx = 0;
     rep = 0;
     while rep < EVAL_SEEDS {
       for truth in NODES {
         root spawn StageIncident(truth=truth, seed=1000 + rep * 977 + idx);
+        root spawn CheckNonCircularity(truth=truth);
         for a in arms {
             r = root spawn RunArm(truth=truth, arm=a);
             s = stats[a];
@@ -169,11 +179,26 @@ with entry {
             if r.rank <= 5 { s[3] += 1; }
             s[4] += r.hops;
             s[5] += int(r.crew_min);
+            s[6] += r.spent;
         }
         idx += 1;
         if idx % 20 == 0 { print(f"  ... {idx}/{EVAL_SEEDS * len(NODES)} incidents"); }
       }
       rep += 1;
+    }
+
+    dv = DIVERGENCE;
+    med = dv["sum"] / dv["n"];
+    frac = 100.0 * dv["cleared"] / dv["n"];
+    print("");
+    print("  non-circularity gate: perturbed truth departs from the nominal model by",
+          round(med, 2), "psi median, worst incident", round(dv["worst"], 2),
+          "psi, against", GAUGE_NOISE, "psi gauge noise;", round(frac, 0),
+          "percent of gauges clear the floor");
+    if dv["worst"] <= GAUGE_NOISE {
+        print("  GATE WARNING: at least one incident does not clear gauge noise.");
+    } else {
+        print("  GATE PASS: every incident diverges by more than gauge noise.");
     }
 
     print(f"\n  after 3 probes ({stats['info'][0]} incidents per arm):");
@@ -182,7 +207,8 @@ with entry {
         n = s[0];
         print(f"  {labels[a]:<26} top-1 {100.0 * s[1] / n:5.1f}%   "
               f"top-3 {100.0 * s[2] / n:5.1f}%   top-5 {100.0 * s[3] / n:5.1f}%   "
-              f"mean {s[4] / n:.2f} hops   {s[5] / n:.0f} crew-min");
+              f"mean {s[4] / n:.2f} hops   {s[5] / n:.0f} crew-min   "
+              f"{s[6] / n:.1f} probes");
     }
     i = stats["info"];
     c = stats["cost"];
