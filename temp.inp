@@ -1,6 +1,6 @@
 ; Filename: data/net2.inp
 ; WNTR: 1.5.0
-; Created: 2026-07-26 15:58:02
+; Created: 2026-07-26 16:28:10
 [TITLE]
 EPANET Example Network 2
 Example of modeling a 55-hour fluoride tracer study.

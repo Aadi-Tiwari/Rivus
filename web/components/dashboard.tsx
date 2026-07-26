@@ -25,6 +25,8 @@ type Replay = {
     nIncidents: number;
     chancePct: number;
     noisePsi: number;
+    note?: string;
+    winner?: string;
     arms: { name: string; key: string; exactPct: number; top5Pct: number; meanHops: number; meanProbes: number }[];
   };
 };
@@ -164,6 +166,19 @@ export function Dashboard() {
   const gained = priorEntropy - current.entropyBits;
   const ranked = Object.entries(current.posterior).sort((a, b) => b[1] - a[1]);
   const armMeta = data.summary.arms.find((a) => a.key === armKey);
+  // Replayable = the arms this incident actually recorded. Measured = the arms carried
+  // through the sweep. They are different sets and the UI should not pretend otherwise.
+  // Deliberately NOT a hook: this sits below the component's early return, and a
+  // conditionally-called useMemo changes hook order between renders.
+  const ARM_LABEL: Record<string, string> = {
+    randomControl: "random control", maxInfoGain: "max information gain",
+    adaptive: "adaptive stopping", allGauges: "all gauges",
+  };
+  const replayableArms = Object.keys(incident?.arms ?? {}).map((k) => ({
+    key: k,
+    name: data.summary.arms.find((a) => a.key === k)?.name ?? ARM_LABEL[k] ?? k,
+    measured: data.summary.arms.some((a) => a.key === k),
+  }));
   const savedVsFixed = 3 - arm.probesUsed;
 
   return shell(
@@ -196,7 +211,7 @@ export function Dashboard() {
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {data.summary.arms.map((a) => (
+          {replayableArms.map((a) => (
             <button
               key={a.key}
               onClick={() => setArmKey(a.key)}
@@ -208,6 +223,7 @@ export function Dashboard() {
               }`}
             >
               {a.name}
+              {!a.measured && <span className="ml-1.5 text-white/25">·replay only</span>}
             </button>
           ))}
         </div>
@@ -470,10 +486,12 @@ export function Dashboard() {
                 );
               })}
             </div>
+            {/* Driven by the data, not hardcoded. The previous copy asserted that no
+                policy beat the control, which was true of the old fixture and is false
+                of the measured run now feeding this page. */}
             <p className="font-mono text-[10px] text-white/30 mt-2">
-              No policy beat the control on accuracy.{" "}
-              {armMeta?.name === "adaptive stopping" ? "This arm" : "Adaptive stopping"} matched them on a third of the
-              dispatches. Reported as measured.
+              {data.summary.note ??
+                "Reported as measured, against a random control on every incident."}
             </p>
           </div>
         </section>
