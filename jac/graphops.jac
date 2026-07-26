@@ -182,6 +182,9 @@ walker ScreenIsolation {
     has out_by_hydraulics: int = 0;
     has agree: bool = False;
     has accepted: bool = False;
+    has nonphysical: int = 0;
+    has pressure_only: list = [];   # lost service without being disconnected
+    has already_dry: list = [];     # cut off, but had no service to lose
     has segment: list = [];
     has override_segment: list = [];   # when set, screen this valve set instead
 
@@ -239,14 +242,40 @@ walker ScreenIsolation {
                          closed_pipes=self.segment, interconnect_from=ic,
                          interconnect_head_m=INTERCONNECT_HEAD);
 
+        # A node is out of service if pressure fell below the service floor, OR if the
+        # solver returned a non-physical value. The second case is not pedantry: closing
+        # valves can disconnect a subnetwork, EPANET then reports millions of psi instead
+        # of failing, and reading that as "above 20 psi, fine" told us 0 customers were
+        # affected when 12 had been cut off. The graph walker caught it.
         lost = [];
+        self.nonphysical = 0;
         for j in NODES {
-            if after[j] < SERVICE_MIN_PSI and base[j] >= SERVICE_MIN_PSI { lost.append(j); }
+            bad = after[j] > NONPHYSICAL_PSI or after[j] != after[j];   # NaN never equals itself
+            if bad { self.nonphysical += 1; }
+            if (bad or after[j] < SERVICE_MIN_PSI) and base[j] >= SERVICE_MIN_PSI {
+                lost.append(j);
+            }
         }
         self.out_by_hydraulics = len(lost);
         self.critical_psi = after[CRITICAL_NODE];
         self.baseline_psi = base[CRITICAL_NODE];
+        # a solver artifact at the critical facility must never read as "plenty of
+        # pressure" — that would accept a plan that strands a hospital
+        if self.critical_psi > NONPHYSICAL_PSI or self.critical_psi != self.critical_psi {
+            self.critical_psi = 0.0;
+        }
         self.accepted = self.critical_psi >= CRITICAL_MIN_PSI;
+        # The two methods answer different questions and the difference is the point.
+        # Topology reports who is CUT OFF. Hydraulics reports who is BELOW SERVICE
+        # PRESSURE. Closing valves can starve a junction that is still connected, and
+        # only the hydraulic run can see that. Where they differ, record which nodes and
+        # why, rather than reporting a bare disagreement.
+        for j in lost {
+            if j not in self.stranded_by_graph { self.pressure_only.append(j); }
+        }
+        for j in self.stranded_by_graph {
+            if j not in lost { self.already_dry.append(j); }
+        }
         self.agree = sorted(self.stranded_by_graph) == sorted(lost);
 
         # reopen so the graph is clean for the next plan
@@ -255,10 +284,18 @@ walker ScreenIsolation {
 
         verdict = "REJECTED";
         if self.accepted { verdict = "ACCEPTED"; }
+        extra = "";
+        if len(self.pressure_only) > 0 {
+            extra += f"; {len(self.pressure_only)} starved while still connected";
+        }
+        if len(self.already_dry) > 0 {
+            extra += f"; {len(self.already_dry)} cut off but already below service "
+                     f"pressure before the work";
+        }
         here ++> Finding(kind="isolation", verdict=verdict,
                          detail=f"{self.name}: critical facility {self.baseline_psi:.2f} "
                                 f"-> {self.critical_psi:.2f} psi, "
-                                f"{self.out_by_hydraulics} junctions out of service");
+                                f"{self.out_by_hydraulics} junctions out of service{extra}");
     }
 }
 
@@ -348,6 +385,8 @@ walker SearchIsolation {
                    "backup": pl[2], "critical_psi": r.critical_psi,
                    "baseline_psi": r.baseline_psi, "out": r.out_by_hydraulics,
                    "stranded_graph": r.stranded_by_graph,
+                   "pressure_only": r.pressure_only,
+                   "already_dry": r.already_dry,
                    "agree": r.agree, "accepted": r.accepted};
             self.considered.append(row);
             # rank key: holds the hospital, then fewest customers out, then fewest valves

@@ -8,6 +8,20 @@ include graphops;
 import json;
 
 
+def reconcile(c: dict) -> str {
+    """Say why topology and hydraulics differ, rather than printing a bare boolean.""";
+    if c["agree"] { return "topology+hydraulics concur"; }
+    bits = [];
+    if len(c["pressure_only"]) > 0 {
+        bits.append(f"{len(c['pressure_only'])} starved while still connected");
+    }
+    if len(c["already_dry"]) > 0 {
+        bits.append(f"{len(c['already_dry'])} cut off but already dry");
+    }
+    return ", ".join(bits);
+}
+
+
 def posterior_map(hyps: list) -> dict {
     out = {};
     for h in hyps { out[h.location] = h.prob; }
@@ -126,7 +140,8 @@ with entry {
         if c["accepted"] { v = "ACCEPTED"; }
         print(f"  {v:<9} {c['name']:<28} {c['valves']} valves  "
               f"hospital {c['baseline_psi']:.2f} -> {c['critical_psi']:.2f} psi  "
-              f"{c['out']}/{len(NODES)} out  cross-check agree={c['agree']}");
+              f"{c['out']}/{len(NODES)} out  "
+              f"{reconcile(c)}");
     }
     print(f"  -> chosen: {srch.best['name']}, {srch.best['valves']} valves, "
           f"hospital holds {srch.best['critical_psi']:.2f} psi, "
@@ -142,6 +157,8 @@ with entry {
             "name": c["name"], "accepted": c["accepted"], "segment": c["segment"],
             "baseline_psi": c["baseline_psi"], "critical_psi": c["critical_psi"],
             "stranded_graph": c["stranded_graph"],
+            "pressure_only": c["pressure_only"],
+            "already_dry": c["already_dry"],
             "stranded_hydraulics": c["out"], "valves": c["valves"],
             "agree": c["agree"], "backup": c["backup"],
             "chosen": c["name"] == srch.best["name"]});

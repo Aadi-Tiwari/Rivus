@@ -717,7 +717,7 @@
   "critical_min_psi": 30.0,
   "service_min_psi": 20.0,
   "sims": 36,
-  "sim_seconds": 0.2139120101928711,
+  "sim_seconds": 0.29796290397644043,
   "demand_lps": 20.364253593992
  },
  "identifiability": {
@@ -764,6 +764,8 @@
    "stranded_graph": [
     "30"
    ],
+   "pressure_only": [],
+   "already_dry": [],
    "stranded_hydraulics": 1,
    "valves": 1,
    "agree": true,
@@ -779,6 +781,8 @@
    "baseline_psi": 78.7707290649414,
    "critical_psi": 78.77427673339844,
    "stranded_graph": [],
+   "pressure_only": [],
+   "already_dry": [],
    "stranded_hydraulics": 0,
    "valves": 1,
    "agree": true,
@@ -799,6 +803,10 @@
     "30",
     "35"
    ],
+   "pressure_only": [],
+   "already_dry": [
+    "35"
+   ],
    "stranded_hydraulics": 1,
    "valves": 3,
    "agree": false,
@@ -816,6 +824,10 @@
    "baseline_psi": 78.7707290649414,
    "critical_psi": 65.06365203857422,
    "stranded_graph": [
+    "35"
+   ],
+   "pressure_only": [],
+   "already_dry": [
     "35"
    ],
    "stranded_hydraulics": 0,

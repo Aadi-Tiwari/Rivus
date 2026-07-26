@@ -80,7 +80,7 @@ project that survived contact with the gate:
   anywhere in the network. Some differ by under 0.05 psi against 0.61 psi of observation
   noise. The engine names the pairs.
 - **Isolation search**: four valve configurations, each screened twice by methods sharing
-  no code, agreeing exactly every time.
+  no code, with every disagreement between them reconciled and explained.
 - **Field intake** refuses a note rather than inventing a pressure reading.
 
 ## Isolation, answered twice
@@ -93,8 +93,24 @@ configuration is screened two ways that share no code:
 2. **Pressure-dependent hydraulics** — run EPANET in PDA mode on the same valve
    configuration and count junctions below service pressure.
 
-They agree on every configuration searched. A disagreement would be a finding, not
-something to paper over.
+They do not always agree, and that turned out to be the most useful thing about running
+both. The two methods answer different questions — topology reports who is **cut off**,
+hydraulics reports who is **below service pressure** — so the engine reconciles every
+disagreement instead of printing a bare boolean:
+
+- *starved while still connected* — closing valves raised head loss enough to drop a
+  junction below service pressure without disconnecting it. Only the hydraulic run can
+  see this.
+- *cut off but already dry* — the junction was below service pressure before the work
+  started, so it had no service to lose. Only the topology run counts it.
+
+**The cross-check caught a real bug.** EPANET cannot solve a hydraulically disconnected
+subnetwork; instead of failing it returned pressures in the millions of psi. Our screen
+read those as "comfortably above 20 psi" and reported **0 customers affected when 12 had
+been cut off**. The graph walker said 12. That contradiction is what surfaced it.
+Non-physical solver output is now treated as loss of service, including at the critical
+facility, where a solver artifact would otherwise have accepted a plan that strands a
+hospital.
 
 ```
 REJECTED  tight ring                  2 valves  hospital 78.77 → 0.00 psi   6/35 out  agree=True

@@ -30,6 +30,10 @@ glob SERVICE_MIN_PSI: float = 20.0;
 glob INTERCONNECT_FROM: str = "30";  # normally-closed emergency supply
 glob INTERCONNECT_HEAD: float = 60.0;
 glob CREW_SPEED: float = 1.2;        # map units per minute
+# EPANET cannot solve a hydraulically disconnected subnetwork. Rather than failing it
+# returns astronomical pressures (millions of psi observed). Anything above this is not
+# a pressure, it is a solver artifact, and the node behind it has no service.
+glob NONPHYSICAL_PSI: float = 300.0;
 glob LEAK_SIZE_CV: float = 0.30;     # the real break size is unknown to the diagnosis
 
 glob NODES: list = [];               # canonical junction order
