@@ -133,24 +133,38 @@ with entry {
               f"node {ident.advice_node} at {ident.advice_sep:.2f} psi.\n");
     }
 
-    print(f"[isolation] searching valve configurations for leading candidate {last_top}");
-    srch = root spawn SearchIsolation(leak=last_top);
-    for c in srch.considered {
-        v = "REJECTED";
-        if c["accepted"] { v = "ACCEPTED"; }
-        print(f"  {v:<9} {c['name']:<28} {c['valves']} valves  "
-              f"hospital {c['baseline_psi']:.2f} -> {c['critical_psi']:.2f} psi  "
-              f"{c['out']}/{len(NODES)} out  "
-              f"{reconcile(c)}");
+    print(f"[isolation] the exact junction is identified about 10% of the time, so the");
+    print(f"            crew gets a plan for every candidate the evidence still supports\n");
+    pc = root spawn PlanForCandidates(top_n=3);
+    for r in pc.plans {
+        flag = "safe plan available";
+        if not r["safe"] { flag = "NO SAFE PLAN"; }
+        print(f"  candidate {r['candidate']:>3}  p={r['probability']:.3f}  {flag}");
+        print(f"      best: {r['best_plan']}, {r['valves']} valves -> hospital "
+              f"{r['critical_psi']:.2f} psi, {r['out']}/{len(NODES)} customers out");
+        print(f"      wrong valve set here: hospital drops to "
+              f"{r['naive_critical_psi']:.2f} psi");
     }
-    print(f"  -> chosen: {srch.best['name']}, {srch.best['valves']} valves, "
-          f"hospital holds {srch.best['critical_psi']:.2f} psi, "
-          f"{srch.best['out']} customers out");
+    if len(pc.dangerous) > 0 {
+        print(f"\n  WARNING: at candidates {pc.dangerous} there is a valve configuration "
+              f"that puts the hospital below {CRITICAL_MIN_PSI:.0f} psi.");
+    }
+    srch = root spawn SearchIsolation(leak=pc.plans[0]["candidate"]);
+
     trace["identifiability"] = {
         "verdict": ident.verdict, "survivors": ident.survivors,
         "n_pairs": ident.n_pairs, "blocked": ident.blocked,
         "advice_node": ident.advice_node, "advice_sep": ident.advice_sep,
         "threshold": 2.0 * sig};
+    trace["candidates"] = [];
+    for r in pc.plans {
+        trace["candidates"].append({
+            "candidate": r["candidate"], "probability": r["probability"],
+            "best_plan": r["best_plan"], "valves": r["valves"],
+            "critical_psi": r["critical_psi"], "out": r["out"],
+            "naive_critical_psi": r["naive_critical_psi"], "safe": r["safe"]});
+    }
+    trace["dangerous"] = pc.dangerous;
     trace["isolation"] = [];
     for c in srch.considered {
         trace["isolation"].append({

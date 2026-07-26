@@ -334,6 +334,28 @@ function panels(){
       information is not there. Best remaining sensor site is node ${I.advice_node}
       at ${f(I.advice_sep,2)} psi.</div></div>`;
   }
+  if(stage>=NP+1 && T.candidates){
+    R += `<div class="block"><h2>Plans per candidate</h2>
+      <div class="note" style="margin:0 0 11px">The exact junction is identified about
+      10% of the time, so every candidate the evidence still supports gets its own
+      isolation plan.</div>`;
+    T.candidates.forEach(c=>{
+      const bad = c.naive_critical_psi < S.critical_min_psi;
+      R += `<div class="plan">
+        <span class="pill ${c.safe?'yes':'no'}">${c.safe?'SAFE PLAN':'NO SAFE PLAN'}</span>
+        <div class="nm">node ${c.candidate} · p=${f(c.probability,3)}</div>
+        <div class="kv"><span>best plan</span><b>${c.valves} valves</b></div>
+        <div class="kv"><span>hospital holds</span><b>${f(c.critical_psi)} psi</b></div>
+        <div class="kv"><span>wrong valve set</span>
+          <b style="color:${bad?'var(--hot)':'var(--ink)'}">${f(c.naive_critical_psi)} psi</b></div>
+      </div>`;
+    });
+    if(T.dangerous && T.dangerous.length)
+      R += `<div class="note" style="color:var(--hot)">At ${T.dangerous.join(' and ')}
+        there is a valve configuration that puts the hospital below
+        ${f(S.critical_min_psi,0)} psi.</div>`;
+    R += `</div>`;
+  }
   if(stage>=NP+2){
     R += `<div class="block"><h2>Valve search · ${NPLAN} configurations</h2>`;
     T.isolation.forEach((p,i)=>{

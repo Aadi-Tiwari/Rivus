@@ -717,7 +717,7 @@
   "critical_min_psi": 30.0,
   "service_min_psi": 20.0,
   "sims": 36,
-  "sim_seconds": 0.29796290397644043,
+  "sim_seconds": 0.20729398727416992,
   "demand_lps": 20.364253593992
  },
  "identifiability": {
@@ -752,6 +752,42 @@
   "advice_sep": 0.10494232177734375,
   "threshold": 1.2206555615733703
  },
+ "candidates": [
+  {
+   "candidate": "30",
+   "probability": 0.693070854097393,
+   "best_plan": "tight ring + backup supply",
+   "valves": 1,
+   "critical_psi": 78.77427673339844,
+   "out": 0,
+   "naive_critical_psi": 55.4056282043457,
+   "safe": true
+  },
+  {
+   "candidate": "35",
+   "probability": 0.15153924703410668,
+   "best_plan": "tight ring + backup supply",
+   "valves": 3,
+   "critical_psi": 65.06365203857422,
+   "out": 0,
+   "naive_critical_psi": 2.00038480758667,
+   "safe": true
+  },
+  {
+   "candidate": "28",
+   "probability": 0.06465896231270409,
+   "best_plan": "tight ring",
+   "valves": 3,
+   "critical_psi": 78.77178955078125,
+   "out": 1,
+   "naive_critical_psi": 2.00038480758667,
+   "safe": true
+  }
+ ],
+ "dangerous": [
+  "35",
+  "28"
+ ],
  "isolation": [
   {
    "name": "tight ring",

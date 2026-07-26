@@ -398,3 +398,45 @@ walker SearchIsolation {
         self.best = self.considered[scored[0][3]];
     }
 }
+
+
+walker PlanForCandidates {
+    """Isolation plans for every candidate the evidence still supports.
+
+    This exists because of a measured result, not a hunch. The exact junction is
+    identified about 10% of the time, so screening only the leading candidate plans for
+    a location that is usually wrong. A crew about to shut water off needs to know which
+    of the plausible break sites has a safe isolation and which does not — and if any of
+    them would strand the hospital, that is worth knowing before the truck moves.
+    """
+    has top_n: int = 3;
+    has plans: list = [];
+    has dangerous: list = [];
+
+    can plan with entry {
+        hyps = of_type([-->], Hypothesis);
+        ranked = [];
+        for h in hyps { ranked.append([h.prob, h.location]); }
+        ranked.sort(reverse=True);
+
+        i = 0;
+        while i < self.top_n and i < len(ranked) {
+            loc = ranked[i][1];
+            s = root spawn SearchIsolation(leak=loc);
+            best = s.best;
+            worst_psi = 1e9;
+            for c in s.considered {
+                if c["critical_psi"] < worst_psi { worst_psi = c["critical_psi"]; }
+            }
+            row = {"candidate": loc, "probability": ranked[i][0],
+                   "best_plan": best["name"], "valves": best["valves"],
+                   "critical_psi": best["critical_psi"], "out": best["out"],
+                   "naive_critical_psi": worst_psi,
+                   "safe": best["accepted"], "considered": s.considered};
+            self.plans.append(row);
+            # the finding a foreman actually needs: is there a way to get this wrong?
+            if worst_psi < CRITICAL_MIN_PSI { self.dangerous.append(loc); }
+            i += 1;
+        }
+    }
+}
