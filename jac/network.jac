@@ -18,7 +18,11 @@ glob INP: str = "data/net2.inp";
 glob LEAK_C: float = 0.002;          # emitter coeff; ~15 L/s, a main break
 glob GAUGE_NOISE: float = 0.35;      # psi, field pressure gauge
 glob MODEL_ERROR: float = 0.50;      # psi, forward-model error allowance
-glob DEMAND_CV: float = 0.08;        # truth-model perturbation
+# Residual uncertainty in today's district demand, AFTER the inlet meter. A district
+# metered area has a flow meter at its inlet, so consumption is partly observed rather
+# than unknown; 0.12 is what is left over. Measured sensitivity is in the README: the
+# method's lift over random probing runs from +13% at 0.05 to roughly nothing by 0.25.
+glob DEMAND_CV: float = 0.12;
 glob ROUGH_CV: float = 0.10;
 glob CRITICAL_NODE: str = "35";      # designated critical facility
 glob CRITICAL_MIN_PSI: float = 30.0;
@@ -26,6 +30,7 @@ glob SERVICE_MIN_PSI: float = 20.0;
 glob INTERCONNECT_FROM: str = "30";  # normally-closed emergency supply
 glob INTERCONNECT_HEAD: float = 60.0;
 glob CREW_SPEED: float = 1.2;        # map units per minute
+glob LEAK_SIZE_CV: float = 0.30;     # the real break size is unknown to the diagnosis
 
 glob NODES: list = [];               # canonical junction order
 

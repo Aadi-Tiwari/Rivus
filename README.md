@@ -16,34 +16,72 @@ Built at JacHacks SF, 26 July 2026.
 
 ## What is actually true
 
-Measured by `jac/evaluate.jac` across every junction used as a hidden leak, three seeds,
-105 incidents per arm, with the truth model deliberately different from the model used
-to diagnose:
+This section changed late in the day, and the change is the most important thing in the
+repository.
+
+### The claim that did not survive
+
+An earlier version of this README reported that information-gain probing landed **43%
+closer** to the leak than random probing. **That number was an artifact and it has been
+withdrawn.**
+
+Person B built a gate (`CheckNonCircularity` in `jac/simulate.jac`) that measures whether
+the evidence the crew reads actually departs from the forward model's own prediction. It
+failed: median divergence was 0.04 psi against a 0.35 psi gauge-noise floor. The cause was
+that `OBSERVED` differenced two snapshots taken under the *same* perturbation, so the
+perturbation cancelled in residual space. The diagnosis was very nearly inverting its own
+simulator, which is exactly the thing the perturbation was supposed to prevent.
+
+The fix was physics, not tuning. Three sources of model error, separated by whether they
+survive differencing:
+
+| source | survives differencing? | how it is modelled |
+|---|---|---|
+| pipe roughness | no — persistent, same error both times | shared draw |
+| district demand | **yes** — the baseline is a different day | independent draws |
+| leak size | **yes** — the diagnosis assumes `LEAK_C` | drawn per incident, 30% CV |
+
+### What the corrected numbers say
+
+105 incidents per arm, every junction used as a hidden leak, three seeds:
 
 | probe strategy | top-1 | top-3 | top-5 | search distance | crew time |
 |---|---|---|---|---|---|
-| max information gain | 20.0% | 50.5% | 63.8% | 2.22 hops | 70 min |
-| bits per crew-hour | 15.2% | 45.7% | 57.1% | 2.70 hops | 18 min |
-| random probes (control) | 8.6% | 32.4% | 46.7% | 3.92 hops | 96 min |
+| max information gain | 9.5% | 23.8% | 29.5% | 4.90 hops | 66 min |
+| bits per crew-hour | 3.8% | 12.4% | 21.0% | 5.31 hops | 18 min |
+| adaptive stopping | 8.6% | 21.0% | 32.4% | 4.92 hops | 62 min |
+| random probes (control) | 5.7% | 18.1% | 30.5% | 4.54 hops | 100 min |
 
-Read that honestly:
+**We cannot claim that information-gain probing beats random probing.** Top-1 looks
+better (9.5% vs 5.7%) but at n=105 that difference has z = 1.04 — not resolvable. Mean
+search distance is actually *worse* than the control. Sweeping the demand uncertainty
+gives a lift of +13% at 0.05 CV decaying to roughly nothing by 0.25, and single-seed and
+three-seed runs at the same setting disagree by 15 points, so the effect is buried in
+noise at this network size.
 
-- Information-gain probing lands **43% closer** to the leak than probing at random.
-- **The exact junction is identified 20% of the time.** PipeTrace does not claim to find
-  the pipe, and never should. If that number ever jumps above 50%, something has gone
-  circular and the run should be thrown away.
-- Cost-aware probing is a real tradeoff, not a free win: it saves 78 crew-minutes per
-  incident against random and gives up 0.49 hops of accuracy. Both arms are reported.
-- The random control arm is not decoration. Without it, "information gain helps" is an
-  unfalsifiable claim.
+The honest reading: on a 35-junction network where 179 of 210 candidate pairs are
+hydraulically indistinguishable, there is not enough information in sparse pressure for
+probe selection to demonstrably beat chance. A larger, better-instrumented network is
+where this would have to be re-tested.
 
-## Why the diagnosis is not circular
+There is one suggestive pattern worth naming rather than hiding: information-gain probing
+concentrates belief, so when it is right it is very right, and when it is wrong it is
+*confidently* wrong further away — which is precisely why the identifiability report below
+is not a nicety. A system whose confident answers are unreliable has to say when it cannot
+separate candidates.
 
-If the readings came from the same simulator used to invert them, the result would mean
-nothing. So `StageIncident` perturbs the truth model before taking the crew's readings —
-demands at 8% CV, pipe roughness at 10% CV — and adds 0.35 psi of gauge noise on top.
-The diagnosis then runs against the *nominal* model. The two genuinely diverge by more
-than the noise floor.
+### What is verified and does hold
+
+These are deterministic. They do not move between runs, and they are the parts of the
+project that survived contact with the gate:
+
+- **36 EPANET simulations in 0.22s**, one per candidate leak.
+- **Identifiability**: 179 of 210 surviving pairs cannot be separated by any single gauge
+  anywhere in the network. Some differ by under 0.05 psi against 0.61 psi of observation
+  noise. The engine names the pairs.
+- **Isolation search**: four valve configurations, each screened twice by methods sharing
+  no code, agreeing exactly every time.
+- **Field intake** refuses a note rather than inventing a pressure reading.
 
 ## Isolation, answered twice
 

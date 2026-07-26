@@ -46,31 +46,63 @@ glob META: dict = {};   # mutated in place, unlike a glob rebind
 walker StageIncident {
     """Hides a leak and produces what a crew would actually read.
 
-    The observations come from a PERTURBED model: demands and pipe roughness are
-    shifted before the truth snapshot is taken. Without this the diagnosis would be
-    inverting the same simulator that produced the evidence, which proves nothing.
+    Person B measured the previous version of this and it failed its own gate: the
+    baseline and the leak snapshot were taken under the SAME perturbation, so the
+    perturbation cancelled in residual space. Median divergence from the nominal model
+    was 0.04 psi against a 0.35 psi gauge-noise floor. The defence was cosmetic.
+
+    The fix is physics, not a tuning knob. Three sources of mismatch, separated by
+    whether they actually cancel when you difference two snapshots:
+
+      roughness   persistent. The pipe is as rough today as it was when the baseline
+                  was recorded, and our model is wrong about it in the same way both
+                  times. This SHOULD cancel, and it does. Shared draw.
+      demand      day to day. The historical baseline was recorded on a different day
+                  under different consumption. This does NOT cancel. Independent draws.
+      leak size   unknown. The diagnosis assumes LEAK_C; the actual break is whatever
+                  it is. This does NOT cancel. Drawn per incident.
+
+    That is what a crew's evidence actually looks like, and it is a materially harder
+    problem than the version this replaces.
     """
     has truth: str;
     has seed: int = 7;
     has leak_lps: float = 0.0;
+    has true_leak_c: float = 0.0;
+    # a parameter, not a glob read: assigning to a glob inside a scope silently
+    # creates a local in Jac, which made an earlier sweep of this value a no-op.
+    has demand_cv: float = -1.0;
 
     can stage with entry {
         random.seed(self.seed);
-        dm = {};
-        rm = {};
         topo = topology(INP);
-        for j in topo["junctions"] { dm[j] = random.lognormvariate(0.0, DEMAND_CV); }
+        dcv = self.demand_cv;
+        if dcv < 0.0 { dcv = DEMAND_CV; }
+
+        # persistent model error: same pipes, same wrong roughness, both snapshots
+        rm = {};
         for p in topo["pipes"] { rm[p[0]] = random.lognormvariate(0.0, ROUGH_CV); }
 
-        base = snapshot(INP, demand_mult=dm, rough_mult=rm);
-        leak = snapshot(INP, leak_node=self.truth, leak_c=LEAK_C,
-                        demand_mult=dm, rough_mult=rm);
+        # demand differs between the historical baseline and today
+        dm_hist = {};
+        dm_now = {};
+        for j in topo["junctions"] {
+            dm_hist[j] = random.lognormvariate(0.0, dcv);
+            dm_now[j] = random.lognormvariate(0.0, dcv);
+        }
+
+        # the break is whatever size it is; the forward model assumes LEAK_C
+        self.true_leak_c = LEAK_C * random.lognormvariate(0.0, LEAK_SIZE_CV);
+
+        base = snapshot(INP, demand_mult=dm_hist, rough_mult=rm);
+        leak = snapshot(INP, leak_node=self.truth, leak_c=self.true_leak_c,
+                        demand_mult=dm_now, rough_mult=rm);
         OBSERVED.clear();
         for j in NODES { OBSERVED[j] = leak[j] - base[j]; }
 
         head_m = base[self.truth] / 1.4219702063247;
         if head_m < 0.0 { head_m = 0.0; }
-        self.leak_lps = LEAK_C * math.sqrt(head_m) * 1000.0;
+        self.leak_lps = self.true_leak_c * math.sqrt(head_m) * 1000.0;
 
         # the junction the supply main ties into, for isolation flooding
         for p in topo["pipes"] {

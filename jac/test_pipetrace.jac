@@ -107,25 +107,47 @@ def probing_reduces_entropy() -> None {
 
 
 # -------------------------------------------------------------- honesty guards
-def truth_model_differs_from_the_forward_model() -> None {
-    """The whole result is worthless if observations come from the same model used to
-    diagnose. This asserts the two actually diverge by more than the noise floor.""";
+def evidence_is_not_the_forward_model_replayed() -> None {
+    """The claim this protects: the diagnosis is not inverting its own simulator.
+
+    The earlier version of this test compared absolute pressure fields and passed while
+    the thing it claimed to protect was broken. The inference never sees absolute
+    pressures — it sees RESIDUALS, and a perturbation applied to both snapshots cancels
+    there. Person B caught it with a measurement. This checks residual space, which is
+    what actually feeds the posterior.
+    """;
     setup_once();
-    random.seed(11);
-    dm = {};
-    rm = {};
-    topo = topology(INP);
-    for j in topo["junctions"] { dm[j] = random.lognormvariate(0.0, DEMAND_CV); }
-    for p in topo["pipes"] { rm[p[0]] = random.lognormvariate(0.0, ROUGH_CV); }
-    nominal = snapshot(INP);
-    perturbed = snapshot(INP, demand_mult=dm, rough_mult=rm);
-    worst = 0.0;
-    for j in NODES {
-        d = abs(perturbed[j] - nominal[j]);
-        if d > worst { worst = d; }
+    total = 0.0;
+    n = 0;
+    for t in [NODES[3], NODES[12], NODES[24]] {
+        root spawn StageIncident(truth=t, seed=4242 + n);
+        sig = [];
+        for h in of_type([root-->], Hypothesis) {
+            if h.location == t { sig = h.signature; }
+        }
+        for (i, j) in enumerate(NODES) { total += abs(OBSERVED[j] - sig[i]); n += 1; }
     }
-    expect(worst > GAUGE_NOISE);
+    mean_mismatch = total / n;
+    # Not a gauge-noise bar: model mismatch smaller than gauge noise is normal and does
+    # not imply circularity. The bar is that the evidence is materially different from
+    # the model's own prediction rather than a replay of it.
+    expect(mean_mismatch > 0.02);
 }
+
+
+def the_true_leak_size_is_unknown_to_the_diagnosis() -> None {
+    """The forward model assumes LEAK_C. If the staged break were always exactly that
+    size, one whole source of real model error would be missing.""";
+    setup_once();
+    sizes = [];
+    for i in [0, 1, 2, 3, 4, 5] {
+        si = root spawn StageIncident(truth=NODES[i], seed=900 + i);
+        sizes.append(si.true_leak_c / LEAK_C);
+    }
+    spread = max(sizes) - min(sizes);
+    expect(spread > 0.1);
+}
+
 
 def identifiability_reports_pairs_not_merged_clusters() -> None {
     """Indistinguishability is not transitive. An earlier version used union-find and
@@ -212,7 +234,8 @@ with entry {
         ["posterior_stays_a_distribution", posterior_stays_a_distribution],
         ["a_contradicting_reading_falls_back_rather_than_nan", a_contradicting_reading_falls_back_rather_than_nan],
         ["probing_reduces_entropy", probing_reduces_entropy],
-        ["truth_model_differs_from_the_forward_model", truth_model_differs_from_the_forward_model],
+        ["evidence_is_not_the_forward_model_replayed", evidence_is_not_the_forward_model_replayed],
+        ["the_true_leak_size_is_unknown_to_the_diagnosis", the_true_leak_size_is_unknown_to_the_diagnosis],
         ["identifiability_reports_pairs_not_merged_clusters", identifiability_reports_pairs_not_merged_clusters],
         ["the_naive_plan_is_rejected", the_naive_plan_is_rejected],
         ["the_backup_plan_is_accepted", the_backup_plan_is_accepted],

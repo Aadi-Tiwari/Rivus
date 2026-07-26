@@ -1,9 +1,9 @@
 [ingest] 35 junctions, 40 pipe edges, 20.4 L/s district draw
-[forward] 36 EPANET runs in 1.33s (37 ms each)
+[forward] 36 EPANET runs in 0.23s (6 ms each)
 
 PipeTrace evaluation
   35 junctions, every one used as a hidden leak in turn
-  sigma 0.61 psi, truth model perturbed (demand 8% CV, roughness 10% CV)
+  sigma 0.61 psi, truth model perturbed (demand 12% CV, roughness 10% CV)
   3 probes per incident, 300 Monte Carlo draws, 3 seeds
 
   ... 20/105 incidents
@@ -12,22 +12,16 @@ PipeTrace evaluation
   ... 80/105 incidents
   ... 100/105 incidents
 
-  non-circularity gate: perturbed truth departs from the nominal model by 0.04 psi median, worst incident 0.0 psi, against 0.35 psi gauge noise; 3.0 percent of gauges clear the floor
+  non-circularity gate: perturbed truth departs from the nominal model by 0.19 psi median, worst incident 0.01 psi, against 0.35 psi gauge noise; 32.0 percent of gauges clear the floor
   GATE WARNING: at least one incident does not clear gauge noise.
 
   after 3 probes (105 incidents per arm):
-  max information gain       top-1  20.0%   top-3  50.5%   top-5  63.8%   mean 2.22 hops   70 crew-min   3.0 probes
-  bits per crew-hour         top-1  15.2%   top-3  45.7%   top-5  57.1%   mean 2.70 hops   18 crew-min   3.0 probes
-  adaptive stopping          top-1  20.0%   top-3  46.7%   top-5  66.7%   mean 2.42 hops   70 crew-min   3.0 probes
-  random probes (control)    top-1  11.4%   top-3  35.2%   top-5  51.4%   mean 3.34 hops   103 crew-min   3.0 probes
+  max information gain       top-1   9.5%   top-3  23.8%   top-5  29.5%   mean 4.90 hops   66 crew-min   3.0 probes
+  bits per crew-hour         top-1   3.8%   top-3  12.4%   top-5  21.0%   mean 5.31 hops   18 crew-min   3.0 probes
+  adaptive stopping          top-1   8.6%   top-3  21.0%   top-5  32.4%   mean 4.92 hops   62 crew-min   3.0 probes
+  random probes (control)    top-1   5.7%   top-3  18.1%   top-5  30.5%   mean 4.54 hops   100 crew-min   3.0 probes
 
-  search distance 2.22 hops vs 3.34 random -> 34% closer
-  cost-aware saves 85 crew-min per incident against random and 52 against max-info, and gives up 0.49 hops. That is a real tradeoff, not a free win.
-  exact junction identified 20% of the time at best. PipeTrace never claims to find the pipe.
+  search distance 4.90 hops vs 4.54 random -> -8% closer
+  cost-aware saves 82 crew-min per incident against random and 48 against max-info, and gives up 0.41 hops. That is a real tradeoff, not a free win.
+  exact junction identified 10% of the time at best. PipeTrace never claims to find the pipe.
 
-
-NOTE (Person B, 14:55): the adaptive-stopping arm never fires at STOP_BITS = 0.35.
-It is capped at the same 3-probe budget as the other arms so it can only stop early,
-and it never does, so it reduces exactly to max information gain. The threshold needs
-calibrating against the real expected_information() scale before this arm means
-anything. Reported as measured rather than tuned until it looked good.
