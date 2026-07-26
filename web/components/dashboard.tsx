@@ -48,7 +48,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 function Sparkline({ values, max }: { values: number[]; max: number }) {
-  if (values.length < 2) return <div className="h-8" />;
+  if (values.length < 2) return <div className="h-6" />;
   const w = 120, h = 32;
   const pts = values.map((v, i) => {
     const x = (i / (values.length - 1)) * w;
@@ -58,7 +58,7 @@ function Sparkline({ values, max }: { values: number[]; max: number }) {
   // No area fill: entropy sits near the top of its own range, so a filled region
   // reads as a solid block and hides the shape of the decline.
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-8 overflow-visible">
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-6 overflow-visible">
       <line x1={0} y1={0} x2={w} y2={0} stroke="rgba(255,255,255,0.18)" strokeWidth={1} strokeDasharray="3 3" />
       <polyline points={pts.join(" ")} fill="none" stroke="var(--belief)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
       <circle cx={w} cy={h - (values[values.length - 1] / max) * h} r={3} fill="var(--belief)" />
@@ -146,7 +146,9 @@ export function Dashboard() {
         y: h * PAD + (maxY - n.y) * scale,
       });
     }
-    return { pos, w, h: h * (1 + 2 * PAD) };
+    // Nodes are already inset by PAD on every side, so the viewBox is exactly h.
+    // Multiplying by (1 + 2*PAD) here added a second, empty 14% band.
+    return { pos, w, h };
   }, [data]);
 
   const shell = (inner: React.ReactNode) => (
@@ -477,8 +479,13 @@ export function Dashboard() {
 
       <div
         ref={splitRef}
-        className="flex-1 min-h-0 grid max-lg:!grid-cols-1 max-lg:gap-3 max-lg:overflow-y-auto"
-        style={{ gridTemplateColumns: `${splitPct}% 14px minmax(0, 1fr)` }}
+        className="min-h-0 grid max-lg:!grid-cols-1 max-lg:gap-3 max-lg:overflow-y-auto"
+        style={{
+          gridTemplateColumns: `${splitPct}% 14px minmax(0, 1fr)`,
+          // Capped rather than flex-1: the panes were taller than their content needed
+          // and it pushed the specs band onto the bottom edge.
+          height: "min(560px, calc(100svh - 266px))",
+        }}
       >
         {showMap ? (
         <section className={`${PANEL} p-4 flex flex-col min-h-0 min-w-0`}>
@@ -619,7 +626,7 @@ export function Dashboard() {
           <div className="grid grid-cols-2 gap-3">
             <div className={`${PANEL} p-3.5`}>
               <Label>Uncertainty</Label>
-              <div className="font-mono text-3xl mt-1 tabular-nums text-white">
+              <div className="font-mono text-2xl mt-0.5 tabular-nums text-white">
                 {current.entropyBits.toFixed(2)}
                 <span className="text-xs text-white/40 ml-1.5">bits</span>
               </div>
@@ -631,11 +638,11 @@ export function Dashboard() {
 
             <div className={`${PANEL} p-3.5`}>
               <Label>Dispatches</Label>
-              <div className="font-mono text-3xl mt-1 tabular-nums text-[var(--cost)]">
+              <div className="font-mono text-2xl mt-0.5 tabular-nums text-[var(--cost)]">
                 {probesSoFar}
                 <span className="text-xs text-white/40 ml-1.5">of {arm.probesUsed}</span>
               </div>
-              <div className="mt-2 h-8 flex items-end gap-1">
+              <div className="mt-1.5 h-6 flex items-end gap-1">
                 {Array.from({ length: Math.max(arm.probesUsed, 3) }).map((_, i) => (
                   <div
                     key={i}
@@ -656,13 +663,13 @@ export function Dashboard() {
 
           <div className={`${PANEL} p-3.5`}>
             <div className="mb-2.5"><Label>Leading candidates</Label></div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {ranked.slice(0, 6).map(([id, p]) => (
                 <div
                   key={id}
                   onMouseEnter={() => setHover(id)}
                   onMouseLeave={() => setHover(null)}
-                  className={`flex items-center gap-2.5 rounded-lg px-2 py-1 ${hover === id ? "bg-white/[0.07]" : ""}`}
+                  className={`flex items-center gap-2.5 rounded-lg px-2 py-0.5 ${hover === id ? "bg-white/[0.07]" : ""}`}
                   style={{ transition: `background 160ms ${EASE}` }}
                 >
                   <span className="font-mono text-[11px] text-white/55 w-6 tabular-nums">{id}</span>
