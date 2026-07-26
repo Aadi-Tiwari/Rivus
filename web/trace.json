@@ -717,7 +717,7 @@
   "critical_min_psi": 30.0,
   "service_min_psi": 20.0,
   "sims": 36,
-  "sim_seconds": 0.22052884101867676,
+  "sim_seconds": 0.22553610801696777,
   "demand_lps": 20.364253593992
  },
  "identifiability": {
@@ -1828,7 +1828,7 @@
  },
  "isolation": [
   {
-   "name": "close repair segment",
+   "name": "tight ring",
    "accepted": false,
    "segment": [
     "32",
@@ -1845,11 +1845,13 @@
     "36"
    ],
    "stranded_hydraulics": 6,
+   "valves": 2,
    "agree": true,
-   "backup": false
+   "backup": false,
+   "chosen": false
   },
   {
-   "name": "backup supply, then close",
+   "name": "tight ring + backup supply",
    "accepted": true,
    "segment": [
     "32",
@@ -1861,8 +1863,60 @@
     "27"
    ],
    "stranded_hydraulics": 1,
+   "valves": 2,
    "agree": true,
-   "backup": true
+   "backup": true,
+   "chosen": true
+  },
+  {
+   "name": "wider ring",
+   "accepted": false,
+   "segment": [
+    "34",
+    "38",
+    "32",
+    "31",
+    "30"
+   ],
+   "baseline_psi": 78.7707290649414,
+   "critical_psi": 0.0,
+   "stranded_graph": [
+    "27",
+    "28",
+    "29",
+    "30",
+    "31",
+    "35",
+    "36"
+   ],
+   "stranded_hydraulics": 7,
+   "valves": 5,
+   "agree": true,
+   "backup": false,
+   "chosen": false
+  },
+  {
+   "name": "wider ring + backup supply",
+   "accepted": true,
+   "segment": [
+    "34",
+    "38",
+    "32",
+    "31",
+    "30"
+   ],
+   "baseline_psi": 78.7707290649414,
+   "critical_psi": 37.64232635498047,
+   "stranded_graph": [
+    "27",
+    "29",
+    "31"
+   ],
+   "stranded_hydraulics": 3,
+   "valves": 5,
+   "agree": true,
+   "backup": true,
+   "chosen": false
   }
  ]
 }

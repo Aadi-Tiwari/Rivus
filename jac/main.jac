@@ -119,34 +119,32 @@ with entry {
               f"node {ident.advice_node} at {ident.advice_sep:.2f} psi.\n");
     }
 
-    print(f"[isolation] screening repair plans for leading candidate {last_top}");
-    a = root spawn ScreenIsolation(leak=last_top, name="close repair segment");
-    b = root spawn ScreenIsolation(leak=last_top, use_backup=True,
-                                   name="backup supply, then close");
-    for r in [a, b] {
+    print(f"[isolation] searching valve configurations for leading candidate {last_top}");
+    srch = root spawn SearchIsolation(leak=last_top);
+    for c in srch.considered {
         v = "REJECTED";
-        if r.accepted { v = "ACCEPTED"; }
-        print(f"  {v:<9} {r.name}");
-        print(f"            closes {r.segment}");
-        print(f"            critical facility {CRITICAL_NODE}: {r.baseline_psi:.2f} "
-              f"-> {r.critical_psi:.2f} psi   |   {r.out_by_hydraulics}/{len(NODES)} "
-              f"junctions below {SERVICE_MIN_PSI:.0f} psi");
-        print(f"            graph walker stranded {len(r.stranded_by_graph)}, "
-              f"hydraulics stranded {r.out_by_hydraulics}, agree={r.agree}");
+        if c["accepted"] { v = "ACCEPTED"; }
+        print(f"  {v:<9} {c['name']:<28} {c['valves']} valves  "
+              f"hospital {c['baseline_psi']:.2f} -> {c['critical_psi']:.2f} psi  "
+              f"{c['out']}/{len(NODES)} out  cross-check agree={c['agree']}");
     }
+    print(f"  -> chosen: {srch.best['name']}, {srch.best['valves']} valves, "
+          f"hospital holds {srch.best['critical_psi']:.2f} psi, "
+          f"{srch.best['out']} customers out");
     trace["identifiability"] = {
         "verdict": ident.verdict, "survivors": ident.survivors,
         "n_pairs": ident.n_pairs, "blocked": ident.blocked,
         "advice_node": ident.advice_node, "advice_sep": ident.advice_sep,
         "threshold": 2.0 * sig};
     trace["isolation"] = [];
-    for r in [a, b] {
+    for c in srch.considered {
         trace["isolation"].append({
-            "name": r.name, "accepted": r.accepted, "segment": r.segment,
-            "baseline_psi": r.baseline_psi, "critical_psi": r.critical_psi,
-            "stranded_graph": r.stranded_by_graph,
-            "stranded_hydraulics": r.out_by_hydraulics,
-            "agree": r.agree, "backup": r.use_backup});
+            "name": c["name"], "accepted": c["accepted"], "segment": c["segment"],
+            "baseline_psi": c["baseline_psi"], "critical_psi": c["critical_psi"],
+            "stranded_graph": c["stranded_graph"],
+            "stranded_hydraulics": c["out"], "valves": c["valves"],
+            "agree": c["agree"], "backup": c["backup"],
+            "chosen": c["name"] == srch.best["name"]});
     }
     with open("web/trace.json", "w") as f { json.dump(trace, f, indent=1); }
     # also as a plain script so the map opens over file:// with no server and no CORS

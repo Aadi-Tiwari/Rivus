@@ -183,6 +183,7 @@ walker ScreenIsolation {
     has agree: bool = False;
     has accepted: bool = False;
     has segment: list = [];
+    has override_segment: list = [];   # when set, screen this valve set instead
 
     can screen with entry {
         juncs = of_type([-->], Junction);
@@ -190,10 +191,18 @@ walker ScreenIsolation {
         for j in juncs { if j.name == self.leak { target = j; } }
         supply = of_type([-->], Source)[0];
 
-        # close every pipe edge touching the break: this is the repair segment
+        # Default plan is the tightest one: close every valve touching the break.
+        # A search can hand us any other valve set through override_segment.
         self.segment = [];
-        for e in [edge target ->:Pipe:->] { e.closed = True; self.segment.append(e.pid); }
-        for e in [edge target <-:Pipe:<-] { e.closed = True; self.segment.append(e.pid); }
+        if len(self.override_segment) > 0 {
+            self.segment = self.override_segment;
+            for e in all_pipes(juncs) {
+                if e.pid in self.segment { e.closed = True; }
+            }
+        } else {
+            for e in [edge target ->:Pipe:->] { e.closed = True; self.segment.append(e.pid); }
+            for e in [edge target <-:Pipe:<-] { e.closed = True; self.segment.append(e.pid); }
+        }
 
         # If the plan opens the emergency interconnect, that main is a real edge and
         # the graph has to see it. Otherwise the walker reports customers stranded who
@@ -241,8 +250,7 @@ walker ScreenIsolation {
         self.agree = sorted(self.stranded_by_graph) == sorted(lost);
 
         # reopen so the graph is clean for the next plan
-        for e in [edge target ->:Pipe:->] { e.closed = False; }
-        for e in [edge target <-:Pipe:<-] { e.closed = False; }
+        for e in all_pipes(juncs) { e.closed = False; }
         if backup != None { del backup; }
 
         verdict = "REJECTED";
@@ -251,5 +259,103 @@ walker ScreenIsolation {
                          detail=f"{self.name}: critical facility {self.baseline_psi:.2f} "
                                 f"-> {self.critical_psi:.2f} psi, "
                                 f"{self.out_by_hydraulics} junctions out of service");
+    }
+}
+
+
+def all_pipes(juncs: list) -> list {
+    """Every Pipe edge in the graph, once. Each edge is listed by its source node, and
+    sources feed junctions, so walking outgoing edges from both node kinds covers all
+    of them without duplicates.""";
+    out = [];
+    for n in juncs { for e in [edge n ->:Pipe:->] { out.append(e); } }
+    for n in of_type([root-->], Source) { for e in [edge n ->:Pipe:->] { out.append(e); } }
+    return out;
+}
+
+
+walker ValveRings {
+    """Grows outward from the break and reports the valves at each ring.
+
+    A crew cannot always close the valves either side of a break: one may be buried,
+    seized, or missing from the map. The next option is to close a wider ring. Which
+    valves form that ring is a question about the graph, so a walker answers it.
+    """
+    has depth: int = 2;
+    has rings: list = [];
+
+    can grow with Junction entry {
+        frontier = [here];
+        seen = [here.name];
+        d = 0;
+        while d < self.depth {
+            pids = [];
+            nxt = [];
+            for n in frontier {
+                for (e, nb) in zip([edge n ->:Pipe:->], [n ->:Pipe:->]) {
+                    if e.pid not in pids { pids.append(e.pid); }
+                    if isinstance(nb, Junction) and nb.name not in seen {
+                        seen.append(nb.name); nxt.append(nb);
+                    }
+                }
+                for (e, nb) in zip([edge n <-:Pipe:<-], [n <-:Pipe:<-]) {
+                    if e.pid not in pids { pids.append(e.pid); }
+                    if isinstance(nb, Junction) and nb.name not in seen {
+                        seen.append(nb.name); nxt.append(nb);
+                    }
+                }
+            }
+            self.rings.append(pids);
+            frontier = nxt;
+            d += 1;
+        }
+    }
+}
+
+
+walker SearchIsolation {
+    """Searches valve configurations instead of assuming one.
+
+    Enumerates the tight ring and the wider ring, each with and without the emergency
+    interconnect, screens every one, and ranks them: plans that hold the critical
+    facility first, then fewest customers stranded, then fewest valves turned.
+    """
+    has leak: str;
+    has considered: list = [];
+    has best: dict = {};
+
+    can search with entry {
+        juncs = of_type([-->], Junction);
+        target = None;
+        for j in juncs { if j.name == self.leak { target = j; } }
+        rings = (target spawn ValveRings(depth=2)).rings;
+
+        plans = [];
+        labels = ["tight ring", "wider ring"];
+        for (i, pids) in enumerate(rings) {
+            for backup in [False, True] {
+                nm = labels[i];
+                if backup { nm = nm + " + backup supply"; }
+                plans.append([nm, pids, backup]);
+            }
+        }
+
+        scored = [];
+        for pl in plans {
+            r = root spawn ScreenIsolation(leak=self.leak, name=pl[0],
+                                           use_backup=pl[2], override_segment=pl[1]);
+            row = {"name": pl[0], "valves": len(pl[1]), "segment": pl[1],
+                   "backup": pl[2], "critical_psi": r.critical_psi,
+                   "baseline_psi": r.baseline_psi, "out": r.out_by_hydraulics,
+                   "stranded_graph": r.stranded_by_graph,
+                   "agree": r.agree, "accepted": r.accepted};
+            self.considered.append(row);
+            # rank key: holds the hospital, then fewest customers out, then fewest valves
+            hold = 0;
+            if not r.accepted { hold = 1; }
+            scored.append([hold, r.out_by_hydraulics, len(pl[1]), len(scored)]);
+        }
+        scored.sort();
+        self.best = self.considered[scored[0][3]];
     }
 }

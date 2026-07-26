@@ -98,7 +98,8 @@ const f = (v,n=2) => Number(v).toFixed(n);
 // stage 0 = network at rest, 1..N = after each probe,
 // N+1 = identifiability, N+2/N+3 = isolation plans
 const NP = T.steps.length;
-const LAST = NP + 3;
+const NPLAN = T.isolation.length;
+const LAST = NP + 1 + NPLAN;      // rest + probes + limits + one stage per valve plan
 let stage = 0;
 
 const byName = {};
@@ -114,20 +115,12 @@ function posteriorAt(s){
   if (s<1) { const u={}; T.nodes.forEach(n=>u[n.name]=1/T.nodes.length); return u; }
   return T.steps[Math.min(s,NP)-1].posterior;
 }
-function strandedAt(s){
-  if (s===NP+2) return T.isolation[0].stranded_graph;
-  if (s===NP+3) return T.isolation[1].stranded_graph;
-  return [];
-}
-function cutAt(s){
-  if (s===NP+2) return T.isolation[0].segment;
-  if (s===NP+3) return T.isolation[1].segment;
-  return [];
-}
+const planAt = s => (s>=NP+2 && s<=NP+1+NPLAN) ? T.isolation[s-NP-2] : null;
+const strandedAt = s => planAt(s) ? planAt(s).stranded_graph : [];
+const cutAt = s => planAt(s) ? planAt(s).segment : [];
 
 function draw(){
   const post = posteriorAt(stage);
-  const pmax = Math.max(...Object.values(post));
   const stranded = strandedAt(stage);
   const cut = cutAt(stage);
   const probed = T.steps.slice(0, Math.min(stage,NP)).map(s=>s.chosen);
@@ -135,6 +128,17 @@ function draw(){
       ? [...new Set(T.identifiability.blocked.slice(0,14).flatMap(b=>[b[1],b[2]]))] : [];
 
   let g = '';
+  // hypothesis bloom, drawn under the network.
+  // Scaled against the uniform prior, not against the running max: at rest every
+  // candidate is equally likely, and sizing by max would paint the whole district red.
+  T.nodes.forEach(n=>{
+    const rel = (post[n.name]||0) * T.nodes.length;   // 1.0 == uniform
+    if(rel>0.35){
+      const k = Math.min(rel, 8);
+      g += `<circle cx="${n.x}" cy="${n.y}" r="${SC*(0.9+k*1.05)}"
+            fill="var(--hot)" fill-opacity="${Math.min(0.07+k*0.055,0.5)}"/>`;
+    }
+  });
   // pipes
   T.pipes.forEach(p=>{
     const a=byName[p.a], b=byName[p.b];
@@ -151,12 +155,6 @@ function draw(){
       g += `<circle cx="${mx}" cy="${my}" r="${SC*1.5}" fill="none"
             stroke="var(--hot)" stroke-width="${SC*.5}"/>`;
     }
-  });
-  // hypothesis bloom
-  T.nodes.forEach(n=>{
-    const p = (post[n.name]||0)/(pmax||1);
-    if(p>0.04) g += `<circle cx="${n.x}" cy="${n.y}" r="${SC*(1.4+p*5.2)}"
-        fill="var(--hot)" fill-opacity="${0.05+p*0.4}"/>`;
   });
   // junctions
   T.nodes.forEach(n=>{
@@ -229,10 +227,13 @@ function panels(){
       twenty thousand dollars.</div></div>`;
   }
 
+  // belief persists past the probing stages: the isolation screens act on the final
+  // posterior, so resetting the count there would misreport what was actually known.
+  const held = stage>=1 ? T.steps[Math.min(stage,NP)-1] : null;
   L += `<div class="block"><h2>Belief</h2>
-    <div class="big">${st ? st.survivors : T.nodes.length}<span class="unit">of ${T.nodes.length} in the 90% set</span></div>
-    ${st ? `<div class="kv"><span>entropy</span><span>${f(st.entropy)} bits</span></div>
-    <div class="kv"><span>leading</span><span>node ${st.top} (p=${f(st.top_prob)})</span></div>`:''}
+    <div class="big">${held ? held.survivors : T.nodes.length}<span class="unit">of ${T.nodes.length} in the 90% set</span></div>
+    ${held ? `<div class="kv"><span>entropy</span><span>${f(held.entropy)} bits</span></div>
+    <div class="kv"><span>leading</span><span>node ${held.top} (p=${f(held.top_prob)})</span></div>`:''}
     ${prev ? `<div class="kv"><span>previous</span><span>${prev.survivors} candidates</span></div>`:''}
     </div>`;
   $('left').innerHTML = L;
@@ -254,21 +255,25 @@ function panels(){
       at ${f(I.advice_sep,2)} psi.</div></div>`;
   }
   if(stage>=NP+2){
-    R += `<div class="block"><h2>Isolation screening</h2>`;
+    const cur = planAt(stage);
+    R += `<div class="block"><h2>Valve search · ${T.isolation.length} configurations</h2>`;
     T.isolation.forEach((p,i)=>{
-      const on = (stage===NP+2 && i===0) || (stage===NP+3 && i===1);
+      const on = (i === stage-NP-2);
       R += `<div class="plan ${on?'sel':''}">
         <span class="pill ${p.accepted?'yes':'no'}">${p.accepted?'ACCEPTED':'REJECTED'}</span>
-        <div style="margin-top:7px">${p.name}</div>
+        <div style="margin-top:7px">${p.name}${p.chosen?' <span class="pill yes">CHOSEN</span>':''}</div>
+        <div class="kv"><span>valves turned</span><span>${p.valves}</span></div>
         <div class="kv"><span>hospital</span><span>${f(p.baseline_psi)} → ${f(p.critical_psi)} psi</span></div>
         <div class="kv"><span>customers out</span><span>${p.stranded_hydraulics} of ${T.nodes.length}</span></div>
         <div class="kv"><span>graph walker</span><span>${p.stranded_graph.length} stranded</span></div>
         <div class="kv"><span>cross-check</span><span style="color:${p.agree?'var(--ok)':'var(--hot)'}">
           ${p.agree?'AGREE':'DISAGREE'}</span></div></div>`;
     });
-    R += `<div class="note">Screened twice and independently: a walker floods the graph
-      through open pipe edges, and a pressure-dependent hydraulic run scores the same
-      valve configuration. Modeled service impact, not a safety certification.</div></div>`;
+    R += `<div class="note">A walker grows valve rings outward from the break and every
+      configuration is screened twice, independently: graph reachability through open
+      pipe edges, and a pressure-dependent hydraulic run on the same valves. Ranked by
+      holding the hospital, then fewest customers stranded, then fewest valves turned.
+      Modeled service impact, not a safety certification.</div></div>`;
   }
   if(!R) R = `<div class="block"><h2>Evidence</h2><div class="note">Probe results, what the
     physics cannot resolve, and the isolation cross-check appear here as the
@@ -282,14 +287,16 @@ function panels(){
 }
 
 function chips(){
-  const names = ['AT REST', ...T.steps.map(s=>`PROBE ${s.step}`), 'LIMITS', 'PLAN A', 'PLAN B'];
+  const names = ['AT REST', ...T.steps.map(s=>`PROBE ${s.step}`), 'LIMITS',
+                 ...T.isolation.map((p,i)=>`PLAN ${String.fromCharCode(65+i)}`)];
   let h='';
   for(let i=0;i<=LAST;i++){
     let v='—', s='';
     if(i===0){ v=T.nodes.length; s='candidates'; }
     else if(i<=NP){ v=T.steps[i-1].survivors; s=`node ${T.steps[i-1].chosen}`; }
     else if(i===NP+1){ v=T.identifiability.blocked.length; s='fused pairs'; }
-    else { const p=T.isolation[i-NP-2]; v=f(p.critical_psi,1); s=p.accepted?'psi · accepted':'psi · rejected'; }
+    else { const p=T.isolation[i-NP-2]; v=f(p.critical_psi,1);
+           s=(p.accepted?'psi · accepted':'psi · rejected')+(p.chosen?' ★':''); }
     h += `<div class="st ${i===stage?'on':''}" data-i="${i}">
             <div class="n">${names[i]}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   }
