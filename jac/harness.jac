@@ -59,6 +59,7 @@ walker RunArm {
     has truth: str;
     has arm: str = "info";
     has probes: int = 3;
+    has draws: int = 0;   # 0 = use EVAL_DRAWS
     has rank: int = 0;
     has hops: int = 0;
     has survivors: int = 0;
@@ -94,7 +95,7 @@ walker RunArm {
             } else {
                 sc = root spawn ScoreProbes(crew_at=crew,
                                             cost_aware=(self.arm == "cost"),
-                                            draws=EVAL_DRAWS);
+                                            draws=(self.draws if self.draws > 0 else EVAL_DRAWS));
                 best = sc.ranked[0];
                 chosen = best[1];
                 bits = best[2];
