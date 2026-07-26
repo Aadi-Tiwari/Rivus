@@ -37,6 +37,8 @@ export function Particles({
   useManualTime?: boolean;
   manualTime?: number;
   introspect?: boolean;
+  // Forwarded to the <points> object via ...props, so it has to be declared here.
+  position?: [number, number, number];
 }) {
   // Reveal animation state
   const revealStartTime = useRef<number | null>(null);
