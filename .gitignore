@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.jac/
+__jac_gen__/
+temp.bin
+temp.inp
+temp.rpt
