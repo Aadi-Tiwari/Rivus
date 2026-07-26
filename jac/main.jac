@@ -1,6 +1,18 @@
-"""PipeTrace demo run. Every number printed is computed during this run."""
+"""PipeTrace demo run.
+
+Every number printed is computed during this run, and the same numbers are written to
+web/trace.json so the map renders measured state rather than a scripted sequence.
+"""
 
 include diagnose;
+import json;
+
+
+def posterior_map(hyps: list) -> dict {
+    out = {};
+    for h in hyps { out[h.location] = h.prob; }
+    return out;
+}
 
 walker ResetGraph {
     """Jac persists the graph to disk between runs, so a second run would stack another
@@ -32,6 +44,26 @@ with entry {
           f"(demand {DEMAND_CV:.0%} CV, roughness {ROUGH_CV:.0%} CV), not the "
           f"model used to diagnose\n");
 
+    trace = {"nodes": [], "pipes": [], "steps": [], "scenario": {}};
+    for j in of_type([root-->], Junction) {
+        trace["nodes"].append({"name": j.name, "x": j.x, "y": j.y,
+                               "psi": j.baseline_psi, "critical": j.is_critical});
+    }
+    for j in of_type([root-->], Junction) {
+        # Pipe objects carry no .target accessor, but the edge list and the neighbour
+        # list come back in the same order, so pair them positionally.
+        for (e, nb) in zip([edge j ->:Pipe:->], [j ->:Pipe:->]) {
+            trace["pipes"].append({"pid": e.pid, "a": j.name, "b": nb.name});
+        }
+    }
+    trace["scenario"] = {"truth": inc.truth, "leak_lps": inc.leak_lps,
+                         "leak_pct": pct, "sigma": sig,
+                         "critical_node": CRITICAL_NODE,
+                         "critical_min_psi": CRITICAL_MIN_PSI,
+                         "service_min_psi": SERVICE_MIN_PSI,
+                         "sims": fm.count + 1, "sim_seconds": fm.seconds,
+                         "demand_lps": ing.demand_lps};
+
     crew = "1";
     step = 1;
     last_top = "";
@@ -49,6 +81,20 @@ with entry {
               f"-> {sc.ranked[1][0]:.1f} bits/hr");
         print(f"          measured {reading:+.2f} psi -> 90% set {tp.survivors}/{len(NODES)}, "
               f"H {tp.entropy_bits:.2f} bits, top {tp.top} (p={tp.top_prob:.2f})\n");
+        cand = [];
+        k = 0;
+        while k < 6 and k < len(sc.ranked) {
+            r = sc.ranked[k];
+            cand.append({"node": r[1], "bits": r[2], "minutes": r[3], "score": r[0]});
+            k += 1;
+        }
+        trace["steps"].append({
+            "step": step, "chosen": best[1], "reading": reading,
+            "bits": best[2], "minutes": best[3],
+            "survivors": tp.survivors, "entropy": tp.entropy_bits,
+            "top": tp.top, "top_prob": tp.top_prob,
+            "candidates": cand,
+            "posterior": posterior_map(of_type([root-->], Hypothesis))});
         crew = best[1];
         last_top = tp.top;
         step += 1;
@@ -88,5 +134,26 @@ with entry {
         print(f"            graph walker stranded {len(r.stranded_by_graph)}, "
               f"hydraulics stranded {r.out_by_hydraulics}, agree={r.agree}");
     }
-    print("\nEvery number above came from EPANET and Bayes. The graph decided where to look.");
+    trace["identifiability"] = {
+        "verdict": ident.verdict, "survivors": ident.survivors,
+        "n_pairs": ident.n_pairs, "blocked": ident.blocked,
+        "advice_node": ident.advice_node, "advice_sep": ident.advice_sep,
+        "threshold": 2.0 * sig};
+    trace["isolation"] = [];
+    for r in [a, b] {
+        trace["isolation"].append({
+            "name": r.name, "accepted": r.accepted, "segment": r.segment,
+            "baseline_psi": r.baseline_psi, "critical_psi": r.critical_psi,
+            "stranded_graph": r.stranded_by_graph,
+            "stranded_hydraulics": r.out_by_hydraulics,
+            "agree": r.agree, "backup": r.use_backup});
+    }
+    with open("web/trace.json", "w") as f { json.dump(trace, f, indent=1); }
+    # also as a plain script so the map opens over file:// with no server and no CORS
+    with open("web/trace.js", "w") as f {
+        f.write("window.TRACE = " + json.dumps(trace) + ";");
+    }
+    print(f"\n[export] web/trace.json written: {len(trace['nodes'])} nodes, "
+          f"{len(trace['pipes'])} pipes, {len(trace['steps'])} probe states");
+    print("Every number above came from EPANET and Bayes. The graph decided where to look.");
 }
