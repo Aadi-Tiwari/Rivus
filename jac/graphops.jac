@@ -192,7 +192,10 @@ walker ScreenIsolation {
         juncs = of_type([-->], Junction);
         target = None;
         for j in juncs { if j.name == self.leak { target = j; } }
-        supply = of_type([-->], Source)[0];
+        # Every source, not just the first. Net2 has one tank so [0] was enough; Net3
+        # has three tanks and two reservoirs, and flooding from one of them would report
+        # customers stranded who are in fact still fed from another.
+        supplies = of_type([-->], Source);
 
         # Default plan is the tightest one: close every valve touching the break.
         # A search can hand us any other valve set through override_segment.
@@ -219,11 +222,13 @@ walker ScreenIsolation {
             backup +>:Pipe(pid="BACKUP_MAIN"):+> tie;
         }
 
-        # method 1 — graph reachability
-        flood = supply spawn FloodFromSource();
-        if backup != None {
-            bflood = backup spawn FloodFromSource();
-            for n in bflood.reached {
+        # method 1 — graph reachability, flooding from every supply into the network
+        flood = supplies[0] spawn FloodFromSource();
+        others = supplies[1:];
+        if backup != None { others = others + [backup]; }
+        for src in others {
+            more = src spawn FloodFromSource();
+            for n in more.reached {
                 if n not in flood.reached { flood.reached.append(n); }
             }
         }
@@ -235,10 +240,10 @@ walker ScreenIsolation {
         }
 
         # method 2 — pressure-dependent hydraulics on the same valve configuration
-        base = snapshot(INP, pdd=True, service_min_psi=SERVICE_MIN_PSI);
+        base = snapshot(inp(), pdd=True, service_min_psi=SERVICE_MIN_PSI);
         ic = None;
         if self.use_backup { ic = INTERCONNECT_FROM; }
-        after = snapshot(INP, pdd=True, service_min_psi=SERVICE_MIN_PSI,
+        after = snapshot(inp(), pdd=True, service_min_psi=SERVICE_MIN_PSI,
                          closed_pipes=self.segment, interconnect_from=ic,
                          interconnect_head_m=INTERCONNECT_HEAD);
 

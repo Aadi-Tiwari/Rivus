@@ -38,6 +38,21 @@ glob LEAK_SIZE_CV: float = 0.30;     # the real break size is unknown to the dia
 
 glob NODES: list = [];               # canonical junction order
 
+# Runtime overrides. A dict, not rebindable globs: assigning to a glob inside any scope
+# silently creates a local in Jac, which already cost us one invalid sweep.
+glob CONFIG: dict = {};
+
+
+def inp() -> str {
+    if "inp" in CONFIG { return CONFIG["inp"]; }
+    return INP;
+}
+
+def leak_c() -> float {
+    if "leak_c" in CONFIG { return CONFIG["leak_c"]; }
+    return LEAK_C;
+}
+
 
 def sigma() -> float {
     return math.sqrt(GAUGE_NOISE ** 2 + MODEL_ERROR ** 2);
@@ -107,8 +122,8 @@ walker IngestNetwork {
     has demand_lps: float = 0.0;
 
     can build with entry {
-        topo = topology(INP);
-        base = snapshot(INP);
+        topo = topology(inp());
+        base = snapshot(inp());
         self.demand_lps = topo["demand_lps"];
         NODES.clear();
         for j in topo["junctions"] { NODES.append(j); }

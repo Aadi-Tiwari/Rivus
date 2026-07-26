@@ -68,7 +68,9 @@ walker RunArm {
     can run with entry {
         root spawn ResetBelief();
         juncs = of_type([-->], Junction);
-        crew = "1";
+        # first junction in the network, not a hardcoded id: Net2 has a node "1"
+        # and Net3 does not, and the hardcoded version crashed on the larger net.
+        crew = NODES[0];
         step = 0;
         budget = self.probes;
         if self.arm == "adaptive" { budget = ADAPTIVE_MAX; }

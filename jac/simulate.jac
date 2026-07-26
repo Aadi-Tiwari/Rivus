@@ -25,10 +25,10 @@ walker BuildForwardModel {
     can build with entry {
         import time;
         t0 = time.time();
-        base = snapshot(INP);
+        base = snapshot(inp());
         n = len(NODES);
         for h in NODES {
-            p = snapshot(INP, leak_node=h, leak_c=LEAK_C);
+            p = snapshot(inp(), leak_node=h, leak_c=leak_c());
             sig = [];
             for j in NODES { sig.append(p[j] - base[j]); }
             here ++> Hypothesis(location=h, prob=1.0 / n, signature=sig);
@@ -75,7 +75,7 @@ walker StageIncident {
 
     can stage with entry {
         random.seed(self.seed);
-        topo = topology(INP);
+        topo = topology(inp());
         dcv = self.demand_cv;
         if dcv < 0.0 { dcv = DEMAND_CV; }
 
@@ -92,10 +92,10 @@ walker StageIncident {
         }
 
         # the break is whatever size it is; the forward model assumes LEAK_C
-        self.true_leak_c = LEAK_C * random.lognormvariate(0.0, LEAK_SIZE_CV);
+        self.true_leak_c = leak_c() * random.lognormvariate(0.0, LEAK_SIZE_CV);
 
-        base = snapshot(INP, demand_mult=dm_hist, rough_mult=rm);
-        leak = snapshot(INP, leak_node=self.truth, leak_c=self.true_leak_c,
+        base = snapshot(inp(), demand_mult=dm_hist, rough_mult=rm);
+        leak = snapshot(inp(), leak_node=self.truth, leak_c=self.true_leak_c,
                         demand_mult=dm_now, rough_mult=rm);
         OBSERVED.clear();
         for j in NODES { OBSERVED[j] = leak[j] - base[j]; }

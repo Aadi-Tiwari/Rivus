@@ -52,17 +52,32 @@ survive differencing:
 | adaptive stopping | 8.6% | 21.0% | 32.4% | 4.92 hops | 62 min |
 | random probes (control) | 5.7% | 18.1% | 30.5% | 4.54 hops | 100 min |
 
-**We cannot claim that information-gain probing beats random probing.** Top-1 looks
-better (9.5% vs 5.7%) but at n=105 that difference has z = 1.04 — not resolvable. Mean
-search distance is actually *worse* than the control. Sweeping the demand uncertainty
-gives a lift of +13% at 0.05 CV decaying to roughly nothing by 0.25, and single-seed and
-three-seed runs at the same setting disagree by 15 points, so the effect is buried in
-noise at this network size.
+**On Net2 we cannot claim that information-gain probing beats random probing.** Top-1
+9.5% vs 5.7% has z = 1.04 — not resolvable at n=105 — and mean search distance is
+actually worse than the control.
 
-The honest reading: on a 35-junction network where 179 of 210 candidate pairs are
-hydraulically indistinguishable, there is not enough information in sparse pressure for
-probe selection to demonstrably beat chance. A larger, better-instrumented network is
-where this would have to be re-tested.
+### So we tested whether that is the method or the network
+
+Net2 is a 35-junction toy where 179 of 210 candidate pairs are hydraulically
+indistinguishable. Almost nothing is left for a probe policy to exploit. `jac/scale.jac`
+runs the identical measurement on **Net3: 92 junctions, 117 pipes, 192.6 L/s, five
+sources**, with the leak scaled to the larger district.
+
+| | Net2 (35 junctions) | Net3 (92 junctions) |
+|---|---|---|
+| indistinguishable pairs, 12-candidate sample | 24 / 66 | **8 / 66** |
+| top-1, information gain vs random | 8.6% vs 8.6% | **19.6% vs 5.4%** |
+| top-5, information gain vs random | 37.1% vs 28.6% | **46.7% vs 22.8%** |
+| search distance | 4.49 vs 5.14 hops (+13%) | **3.98 vs 6.27 hops (+37%)** |
+| statistically resolvable? | no, z = 0.0 and 0.76 | **yes, z = 2.98 and 3.52 (p<0.01)** |
+
+**The method works. It needs a network with enough hydraulically distinguishable
+structure, and Net2 does not have it.** On Net3 information-gain probing identifies the
+exact junction 3.6× more often than chance and halves the search distance, and both
+results are significant at p<0.01.
+
+That is a narrower claim than the 43% we withdrew, and unlike that one it survives its
+own gate and a control arm.
 
 There is one suggestive pattern worth naming rather than hiding: information-gain probing
 concentrates belief, so when it is right it is very right, and when it is wrong it is
