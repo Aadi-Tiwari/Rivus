@@ -7,75 +7,141 @@
 <script src="trace.js"></script>
 <style>
   :root{
-    --ground:#070C14; --panel:#0C1524; --line:#16233A; --ink:#DCE7F2;
-    --dim:#5E7492; --water:#3FB8D4; --hot:#FF6B4A; --ok:#4ADE9B; --warn:#F0B429;
+    --abyss:#03070D; --panel:#070F19; --panel2:#0A1624; --hair:#122334;
+    --ink:#DAE8F4; --dim:#5A7A99; --dimmer:#3C566E;
+    --water:#4FC9EA; --deep:#1B7A9B; --hot:#FF6A45; --ok:#35D9A0; --warn:#F2B33C;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --disp:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--ground);color:var(--ink);font-family:var(--mono);
-       font-size:13px;line-height:1.5;overflow:hidden}
-  #app{display:grid;grid-template-columns:300px 1fr 300px;grid-template-rows:44px 1fr 104px;
-       height:100vh;gap:1px;background:var(--line)}
+  html,body{height:100%}
+  body{background:var(--abyss);color:var(--ink);font-family:var(--mono);
+       font-size:13px;line-height:1.55;overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+
+  #app{display:grid;grid-template-columns:314px 1fr 322px;
+       grid-template-rows:52px 1fr 96px;height:100vh;gap:1px;background:var(--hair)}
+
+  /* ---- header ---- */
   header{grid-column:1/-1;background:var(--panel);display:flex;align-items:center;
-         gap:18px;padding:0 16px}
-  .brand{font-weight:700;letter-spacing:.16em;font-size:12px}
-  .brand b{color:var(--water)}
-  .meta{color:var(--dim);font-size:11px;letter-spacing:.05em}
+         gap:20px;padding:0 20px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,rgba(79,201,234,.07),transparent 42%)}
+  .brand{font-family:var(--disp);font-size:19px;letter-spacing:.005em;
+         font-weight:600;position:relative}
+  .brand i{font-style:italic;color:var(--water)}
+  .tag{color:var(--dim);font-size:11px;letter-spacing:.13em;text-transform:uppercase}
   .spacer{flex:1}
-  aside{background:var(--panel);overflow-y:auto;padding:14px}
-  main{background:var(--ground);position:relative;overflow:hidden}
-  footer{grid-column:1/-1;background:var(--panel);display:flex;align-items:center;
-         gap:10px;padding:0 16px}
-  h2{font-size:10px;letter-spacing:.18em;color:var(--dim);font-weight:600;
-     margin-bottom:9px;text-transform:uppercase}
-  .block{margin-bottom:20px}
-  .kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:12px}
-  .kv span:last-child{color:var(--ink);font-variant-numeric:tabular-nums}
-  .kv span:first-child{color:var(--dim)}
-  .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-  .unit{font-size:11px;color:var(--dim);margin-left:4px}
-  .rec{border:1px solid var(--water);border-radius:3px;padding:11px;margin-bottom:9px;
-       background:rgba(63,184,212,.06)}
-  .rec .node{font-size:20px;font-weight:700;color:var(--water)}
-  .alt{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;padding:2px 0}
-  .pill{display:inline-block;padding:2px 7px;border-radius:2px;font-size:10px;
-        letter-spacing:.1em;font-weight:700}
-  .pill.no{background:rgba(255,107,74,.15);color:var(--hot);border:1px solid var(--hot)}
-  .pill.yes{background:rgba(74,222,155,.13);color:var(--ok);border:1px solid var(--ok)}
-  .plan{border:1px solid var(--line);border-radius:3px;padding:10px;margin-bottom:8px}
-  .plan.sel{border-color:var(--dim)}
-  .pair{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;
-        border-bottom:1px solid var(--line)}
-  .pair b{color:var(--hot);font-weight:600}
-  button{font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:7px 15px;
-         background:transparent;color:var(--ink);border:1px solid var(--line);
-         border-radius:2px;cursor:pointer}
+  .live{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:11px;
+        letter-spacing:.08em}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--water);
+       box-shadow:0 0 9px var(--water);animation:breathe 2.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* ---- rails ---- */
+  aside{background:var(--panel);overflow-y:auto;padding:18px 18px 26px}
+  aside::-webkit-scrollbar{width:5px}
+  aside::-webkit-scrollbar-thumb{background:var(--hair);border-radius:3px}
+  h2{font-size:9.5px;letter-spacing:.2em;color:var(--dimmer);font-weight:700;
+     text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:9px}
+  h2::after{content:"";flex:1;height:1px;background:var(--hair)}
+  .block{margin-bottom:26px}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:3.5px 0;font-size:12px}
+  .kv b{color:var(--ink);font-weight:400;font-variant-numeric:tabular-nums}
+  .kv span{color:var(--dim)}
+  .note{color:var(--dimmer);font-size:10.5px;line-height:1.55;margin-top:10px}
+
+  .hero{font-family:var(--disp);font-size:46px;line-height:1;font-weight:600;
+        font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .hero small{font-family:var(--mono);font-size:11px;color:var(--dim);
+              letter-spacing:.04em;margin-left:9px;font-weight:400}
+  .delta{color:var(--water);font-size:11px;letter-spacing:.05em;margin-top:5px}
+
+  .rec{border:1px solid rgba(79,201,234,.4);border-radius:2px;padding:13px;
+       background:linear-gradient(180deg,rgba(79,201,234,.09),rgba(79,201,234,.02));
+       position:relative;overflow:hidden}
+  .rec::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+               background:var(--water)}
+  .rec .node{font-family:var(--disp);font-size:27px;font-weight:600;color:var(--water);
+             line-height:1.05;margin-bottom:9px}
+  .alt{display:flex;justify-content:space-between;color:var(--dimmer);font-size:11px;
+       padding:3px 0;border-bottom:1px solid rgba(18,35,52,.7)}
+
+  .pill{display:inline-block;padding:2.5px 8px;border-radius:2px;font-size:9.5px;
+        letter-spacing:.13em;font-weight:700}
+  .pill.no{background:rgba(255,106,69,.13);color:var(--hot);
+           box-shadow:inset 0 0 0 1px rgba(255,106,69,.5)}
+  .pill.yes{background:rgba(53,217,160,.12);color:var(--ok);
+            box-shadow:inset 0 0 0 1px rgba(53,217,160,.5)}
+  .pill.pick{background:var(--ok);color:#04120C;margin-left:6px}
+
+  .plan{border:1px solid var(--hair);border-radius:2px;padding:11px;margin-bottom:9px;
+        transition:border-color .2s,background .2s}
+  .plan.on{border-color:rgba(90,122,153,.6);background:rgba(10,22,36,.85)}
+  .plan .nm{margin:8px 0 7px;font-size:12.5px}
+
+  .pair{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;
+        border-bottom:1px solid var(--hair);font-variant-numeric:tabular-nums}
+  .pair em{font-style:normal;color:var(--hot)}
+
+  /* ---- map ---- */
+  main{background:
+      radial-gradient(120% 90% at 50% -18%,rgba(27,122,155,.20),transparent 62%),
+      radial-gradient(80% 70% at 82% 116%,rgba(27,122,155,.13),transparent 60%),
+      var(--abyss);
+      position:relative;overflow:hidden}
+  main::before,main::after{content:"";position:absolute;inset:-25%;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(79,201,234,.055),transparent);
+    animation:drift 26s ease-in-out infinite alternate}
+  main::before{width:70%;height:70%;left:4%;top:8%}
+  main::after{width:60%;height:60%;left:46%;top:34%;animation-duration:34s;
+              animation-direction:alternate-reverse}
+  @keyframes drift{from{transform:translate3d(0,0,0) scale(1)}
+                   to{transform:translate3d(5%,7%,0) scale(1.16)}}
+  svg{width:100%;height:100%;display:block;position:relative}
+
+  .flow{animation:flow 2.4s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-100}}
+  .ripple{animation:ripple 1.5s cubic-bezier(.2,.7,.3,1) forwards}
+  @keyframes ripple{from{opacity:.9}to{opacity:0}}
+
+  /* ---- timeline ---- */
+  footer{grid-column:1/-1;background:var(--panel);display:flex;align-items:stretch;
+         gap:1px;padding:0}
+  .nav{display:flex;align-items:center;padding:0 16px;background:var(--panel)}
+  button{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;padding:9px 15px;
+         background:transparent;color:var(--dim);border:1px solid var(--hair);
+         border-radius:2px;cursor:pointer;transition:.16s}
   button:hover:not(:disabled){border-color:var(--water);color:var(--water)}
-  button:disabled{opacity:.3;cursor:default}
-  button.primary{border-color:var(--water);color:var(--water);
-                 background:rgba(63,184,212,.08)}
-  .steps{display:flex;gap:1px;flex:1}
-  .st{flex:1;background:var(--ground);border-top:2px solid var(--line);padding:7px 10px;
-      cursor:pointer;transition:border-color .15s}
-  .st.on{border-top-color:var(--water);background:rgba(63,184,212,.05)}
-  .st .n{font-size:10px;color:var(--dim);letter-spacing:.1em}
-  .st .v{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
-  .st .s{font-size:10px;color:var(--dim)}
-  svg{width:100%;height:100%;display:block}
-  text{font-family:var(--mono)}
-  .note{color:var(--dim);font-size:10.5px;line-height:1.45;margin-top:7px}
-  .rule{height:1px;background:var(--line);margin:13px 0}
-  @keyframes ping{0%{r:5;opacity:.85}100%{r:26;opacity:0}}
-  .ping{animation:ping 1.1s ease-out forwards}
+  button:disabled{opacity:.25;cursor:default}
+  button.go{border-color:rgba(79,201,234,.55);color:var(--water);
+            background:rgba(79,201,234,.09)}
+  .steps{display:flex;gap:1px;flex:1;background:var(--hair)}
+  .st{flex:1;background:var(--panel);padding:11px 12px;cursor:pointer;
+      border-top:2px solid transparent;transition:.18s;position:relative;min-width:0}
+  .st:hover{background:var(--panel2)}
+  .st.on{border-top-color:var(--water);background:var(--panel2)}
+  .st.on::after{content:"";position:absolute;inset:0 0 auto;height:34px;
+    background:linear-gradient(180deg,rgba(79,201,234,.10),transparent)}
+  .st .n{font-size:9px;color:var(--dimmer);letter-spacing:.16em;font-weight:700}
+  .st .v{font-family:var(--disp);font-size:21px;font-weight:600;line-height:1.15;
+         font-variant-numeric:tabular-nums}
+  .st .s{font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;
+         text-overflow:ellipsis}
+  .st.on .v{color:var(--water)}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <div class="brand"><b>PIPE</b>TRACE</div>
-    <div class="meta" id="hdr">district 2 · incident board</div>
+    <div class="brand">Pipe<i>Trace</i></div>
+    <div class="tag" id="hdr"></div>
     <div class="spacer"></div>
-    <div class="meta" id="hdr2"></div>
+    <div class="live"><span class="dot"></span><span id="hdr2"></span></div>
   </header>
 
   <aside id="left"></aside>
@@ -83,207 +149,220 @@
   <aside id="right"></aside>
 
   <footer>
-    <button id="prev">◀ BACK</button>
+    <div class="nav"><button id="prev">◀</button></div>
     <div class="steps" id="steps"></div>
-    <button id="next" class="primary">NEXT ▶</button>
+    <div class="nav"><button id="next" class="go">NEXT ▶</button></div>
   </footer>
 </div>
 
 <script>
-const T = window.TRACE;
-const S = T.scenario;
+const T = window.TRACE, S = T.scenario;
 const $ = id => document.getElementById(id);
 const f = (v,n=2) => Number(v).toFixed(n);
 
-// stage 0 = network at rest, 1..N = after each probe,
-// N+1 = identifiability, N+2/N+3 = isolation plans
-const NP = T.steps.length;
-const NPLAN = T.isolation.length;
-const LAST = NP + 1 + NPLAN;      // rest + probes + limits + one stage per valve plan
+const NP = T.steps.length, NPLAN = T.isolation.length;
+const LAST = NP + 1 + NPLAN;
 let stage = 0;
 
 const byName = {};
 T.nodes.forEach(n => byName[n.name] = n);
-const xs = T.nodes.map(n=>n.x), ys = T.nodes.map(n=>n.y);
-const pad = 6;
-const bb = {x0:Math.min(...xs)-pad, x1:Math.max(...xs)+pad,
-            y0:Math.min(...ys)-pad, y1:Math.max(...ys)+pad};
-$('map').setAttribute('viewBox', `${bb.x0} ${bb.y0} ${bb.x1-bb.x0} ${bb.y1-bb.y0}`);
-const SC = (bb.x1-bb.x0)/100;              // stroke/– scale so lines read at any zoom
+const xs = T.nodes.map(n=>n.x), ys = T.nodes.map(n=>n.y), pad = 7;
+const bb = {x0:Math.min(...xs)-pad, y0:Math.min(...ys)-pad,
+            w:Math.max(...xs)-Math.min(...xs)+pad*2,
+            h:Math.max(...ys)-Math.min(...ys)+pad*2};
+$('map').setAttribute('viewBox', `${bb.x0} ${bb.y0} ${bb.w} ${bb.h}`);
+const SC = bb.w/100;
 
-function posteriorAt(s){
-  if (s<1) { const u={}; T.nodes.forEach(n=>u[n.name]=1/T.nodes.length); return u; }
-  return T.steps[Math.min(s,NP)-1].posterior;
-}
+const posteriorAt = s => s<1
+  ? Object.fromEntries(T.nodes.map(n=>[n.name,1/T.nodes.length]))
+  : T.steps[Math.min(s,NP)-1].posterior;
 const planAt = s => (s>=NP+2 && s<=NP+1+NPLAN) ? T.isolation[s-NP-2] : null;
 const strandedAt = s => planAt(s) ? planAt(s).stranded_graph : [];
 const cutAt = s => planAt(s) ? planAt(s).segment : [];
 
 function draw(){
   const post = posteriorAt(stage);
-  const stranded = strandedAt(stage);
-  const cut = cutAt(stage);
+  const stranded = strandedAt(stage), cut = cutAt(stage);
   const probed = T.steps.slice(0, Math.min(stage,NP)).map(s=>s.chosen);
   const fused = stage===NP+1
-      ? [...new Set(T.identifiability.blocked.slice(0,14).flatMap(b=>[b[1],b[2]]))] : [];
+    ? [...new Set(T.identifiability.blocked.slice(0,14).flatMap(b=>[b[1],b[2]]))] : [];
 
-  let g = '';
-  // hypothesis bloom, drawn under the network.
-  // Scaled against the uniform prior, not against the running max: at rest every
-  // candidate is equally likely, and sizing by max would paint the whole district red.
+  let g = `<defs>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="${SC*.85}" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  // belief, drawn beneath the network. Scaled against the uniform prior — sizing by
+  // the running max would paint the whole district red when nothing is known yet.
   T.nodes.forEach(n=>{
-    const rel = (post[n.name]||0) * T.nodes.length;   // 1.0 == uniform
-    if(rel>0.35){
-      const k = Math.min(rel, 8);
-      g += `<circle cx="${n.x}" cy="${n.y}" r="${SC*(0.9+k*1.05)}"
-            fill="var(--hot)" fill-opacity="${Math.min(0.07+k*0.055,0.5)}"/>`;
+    const rel = (post[n.name]||0) * T.nodes.length;
+    if(rel>0.4){
+      const k = Math.min(rel,8);
+      g += `<circle cx="${n.x}" cy="${n.y}" r="${SC*(1+k*1.08)}" fill="var(--hot)"
+            fill-opacity="${Math.min(.05+k*.05,.42)}"/>`;
     }
   });
-  // pipes
+
+  // Pipes render in two layers: a static tube, and a current that animates along it.
+  // The current is the honest bit — it stops wherever the network has lost supply, so
+  // a stranded district visibly goes still rather than just changing colour.
   T.pipes.forEach(p=>{
     const a=byName[p.a], b=byName[p.b];
     if(!a||!b) return;
     const isCut = cut.includes(p.pid);
     const dead = stranded.includes(p.a) && stranded.includes(p.b);
-    const col = isCut ? 'var(--hot)' : dead ? '#1A2434' : 'var(--water)';
-    const op  = isCut ? 1 : dead ? .5 : .34;
-    g += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${col}"
-          stroke-opacity="${op}" stroke-width="${SC*.55}"
-          ${isCut?`stroke-dasharray="${SC*1.4} ${SC*1.1}"`:''}/>`;
+    const tube = isCut ? 'rgba(255,106,69,.30)' : dead ? '#0C1622' : 'rgba(27,122,155,.42)';
+    g += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+          stroke="${tube}" stroke-width="${SC*.85}" stroke-linecap="round"/>`;
+    if(!isCut && !dead){
+      const len = Math.hypot(b.x-a.x, b.y-a.y);
+      g += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="flow"
+            stroke="var(--water)" stroke-opacity=".62" stroke-width="${SC*.34}"
+            stroke-linecap="round" stroke-dasharray="${SC*1.1} ${SC*3.2}"
+            pathLength="100" style="animation-duration:${(1.6+len/26).toFixed(2)}s"/>`;
+    }
     if(isCut){
       const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-      g += `<circle cx="${mx}" cy="${my}" r="${SC*1.5}" fill="none"
-            stroke="var(--hot)" stroke-width="${SC*.5}"/>`;
+      const ang = Math.atan2(b.y-a.y, b.x-a.x)*180/Math.PI;
+      g += `<g transform="translate(${mx} ${my}) rotate(${ang})" filter="url(#glow)">
+        <line x1="0" y1="${-SC*1.5}" x2="0" y2="${SC*1.5}" stroke="var(--hot)"
+              stroke-width="${SC*.5}" stroke-linecap="round"/></g>`;
     }
   });
+
   // junctions
   T.nodes.forEach(n=>{
-    const out = stranded.includes(n.name);
-    const isFused = fused.includes(n.name);
-    let fill = out ? '#22303F' : '#9FB6CE';
+    const out = stranded.includes(n.name), isFused = fused.includes(n.name);
+    const isProbe = probed.includes(n.name);
+    let fill = out ? '#1B2938' : '#8FAAC6';
     if(n.critical) fill = out ? 'var(--hot)' : 'var(--ok)';
-    if(probed.includes(n.name)) fill = 'var(--water)';
+    if(isProbe) fill = 'var(--water)';
     if(isFused) fill = 'var(--warn)';
-    const r = n.critical ? SC*1.5 : SC*.95;
-    g += `<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}"/>`;
-    if(n.critical) g += `<circle cx="${n.x}" cy="${n.y}" r="${SC*2.7}" fill="none"
-        stroke="${out?'var(--hot)':'var(--ok)'}" stroke-width="${SC*.36}"/>
-        <text x="${n.x+SC*3.4}" y="${n.y+SC*1}" font-size="${SC*2.5}"
-        fill="${out?'var(--hot)':'var(--ok)'}" letter-spacing="${SC*.1}">HOSPITAL</text>`;
-    if(probed.includes(n.name))
-      g += `<text x="${n.x}" y="${n.y-SC*2.2}" font-size="${SC*2.3}" fill="var(--water)"
-            text-anchor="middle">${n.name}</text>`;
-    if(isFused)
-      g += `<text x="${n.x}" y="${n.y-SC*2}" font-size="${SC*2.1}" fill="var(--warn)"
-            text-anchor="middle">${n.name}</text>`;
+    const r = n.critical ? SC*1.35 : SC*.8;
+    const fx = (isProbe||n.critical||isFused) ? ' filter="url(#glow)"' : '';
+    g += `<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${fill}"${fx}/>`;
+
+    if(n.critical){
+      const c = out?'var(--hot)':'var(--ok)';
+      g += `<circle cx="${n.x}" cy="${n.y}" r="${SC*2.6}" fill="none" stroke="${c}"
+            stroke-opacity=".75" stroke-width="${SC*.28}"/>
+        <text x="${n.x+SC*3.6}" y="${n.y+SC*.9}" font-size="${SC*2.2}" fill="${c}"
+        letter-spacing="${SC*.14}" font-family="var(--mono)">HOSPITAL</text>`;
+    }
+    if(isProbe) g += `<text x="${n.x}" y="${n.y-SC*2}" font-size="${SC*2.1}"
+        fill="var(--water)" text-anchor="middle" font-family="var(--mono)">${n.name}</text>`;
+    if(isFused) g += `<text x="${n.x}" y="${n.y-SC*1.9}" font-size="${SC*2}"
+        fill="var(--warn)" text-anchor="middle" font-family="var(--mono)">${n.name}</text>`;
   });
-  // live recommendation marker
+
+  // pressure wave from the measurement just taken
   if(stage>=1 && stage<=NP){
     const c = byName[T.steps[stage-1].chosen];
-    if(c) g += `<circle cx="${c.x}" cy="${c.y}" r="5" fill="none" stroke="var(--water)"
-                stroke-width="${SC*.45}" class="ping"/>`;
+    if(c) for(let i=0;i<3;i++)
+      g += `<circle cx="${c.x}" cy="${c.y}" r="${SC*(3+i*3.2)}" fill="none"
+            stroke="var(--water)" stroke-width="${SC*.3}" class="ripple"
+            style="animation-delay:${i*.22}s"/>`;
   }
-  // truth, revealed only at the end
+
+  // truth, revealed only once probing is done
   if(stage>=NP+1){
     const t = byName[S.truth];
-    if(t) g += `<circle cx="${t.x}" cy="${t.y}" r="${SC*2.2}" fill="none"
-        stroke="#fff" stroke-width="${SC*.36}" stroke-dasharray="${SC*.8} ${SC*.7}"/>
-        <text x="${t.x}" y="${t.y+SC*5.2}" font-size="${SC*2.3}" fill="#fff"
-        text-anchor="middle" opacity=".75">ACTUAL ${S.truth}</text>`;
+    if(t) g += `<circle cx="${t.x}" cy="${t.y}" r="${SC*2.1}" fill="none" stroke="#fff"
+        stroke-opacity=".8" stroke-width="${SC*.3}" stroke-dasharray="${SC*.75} ${SC*.65}"/>
+      <text x="${t.x}" y="${t.y+SC*4.9}" font-size="${SC*2}" fill="#fff" opacity=".7"
+        text-anchor="middle" font-family="var(--mono)">ACTUAL ${S.truth}</text>`;
   }
   $('map').innerHTML = g;
-  panels();
-  chips();
+  panels(); chips();
 }
 
 function panels(){
   const st = (stage>=1 && stage<=NP) ? T.steps[stage-1] : null;
+  const held = stage>=1 ? T.steps[Math.min(stage,NP)-1] : null;
   const prev = stage>=2 ? T.steps[Math.min(stage,NP)-2] : null;
 
   let L = `<div class="block"><h2>Incident</h2>
-    <div class="kv"><span>district draw</span><span>${f(S.demand_lps,1)} L/s</span></div>
-    <div class="kv"><span>candidate junctions</span><span>${T.nodes.length}</span></div>
-    <div class="kv"><span>hydraulic runs</span><span>${S.sims} in ${f(S.sim_seconds)}s</span></div>
-    <div class="kv"><span>gauge sigma</span><span>${f(S.sigma)} psi</span></div>
-    <div class="note">Readings are generated from a perturbed model — demands and pipe
-    roughness shifted — so the diagnosis is not inverting its own simulator.</div></div>`;
+    <div class="kv"><span>district draw</span><b>${f(S.demand_lps,1)} L/s</b></div>
+    <div class="kv"><span>candidate junctions</span><b>${T.nodes.length}</b></div>
+    <div class="kv"><span>hydraulic runs</span><b>${S.sims} in ${f(S.sim_seconds)}s</b></div>
+    <div class="kv"><span>gauge sigma</span><b>${f(S.sigma)} psi</b></div>
+    <div class="note">Readings come from a perturbed model — demands and pipe roughness
+    shifted — so the diagnosis is not inverting its own simulator.</div></div>`;
 
   if(st){
     L += `<div class="block"><h2>Next best test</h2>
-      <div class="rec"><div class="node">NODE ${st.chosen}</div>
-        <div class="kv"><span>expected gain</span><span>${f(st.bits)} bits</span></div>
-        <div class="kv"><span>crew travel</span><span>${f(st.minutes,0)} min</span></div>
-        <div class="kv"><span>measured</span><span>${st.reading>=0?'+':''}${f(st.reading)} psi</span></div>
-      </div>`;
+      <div class="rec"><div class="node">Node ${st.chosen}</div>
+        <div class="kv"><span>expected gain</span><b>${f(st.bits)} bits</b></div>
+        <div class="kv"><span>crew travel</span><b>${f(st.minutes,0)} min</b></div>
+        <div class="kv"><span>measured</span><b>${st.reading>=0?'+':''}${f(st.reading)} psi</b></div>
+      </div><div style="margin-top:11px">`;
     st.candidates.slice(1,5).forEach(c=>{
       L += `<div class="alt"><span>node ${c.node}</span><span>${f(c.bits)} bits · ${f(c.minutes,0)}m</span></div>`;
     });
-    L += `<div class="note">Ranked by expected information gain over the belief on the
-      graph. Every candidate is scored, not just the nearby ones.</div></div>`;
+    L += `</div><div class="note">Every candidate is scored by expected information
+      gain over the belief held on the graph — not just the convenient ones.</div></div>`;
   } else if(stage===0){
-    L += `<div class="block"><h2>Status</h2>
-      <div class="note">Somewhere in this district a main has failed. Every junction is a
-      live hypothesis. A crew check costs about an hour; the wrong excavation costs about
-      twenty thousand dollars.</div></div>`;
+    L += `<div class="block"><h2>Status</h2><div class="note">A main has failed somewhere
+      in this district. Every junction is a live hypothesis. One crew check costs about
+      an hour; the wrong excavation costs about twenty thousand dollars.</div></div>`;
   }
 
-  // belief persists past the probing stages: the isolation screens act on the final
-  // posterior, so resetting the count there would misreport what was actually known.
-  const held = stage>=1 ? T.steps[Math.min(stage,NP)-1] : null;
   L += `<div class="block"><h2>Belief</h2>
-    <div class="big">${held ? held.survivors : T.nodes.length}<span class="unit">of ${T.nodes.length} in the 90% set</span></div>
-    ${held ? `<div class="kv"><span>entropy</span><span>${f(held.entropy)} bits</span></div>
-    <div class="kv"><span>leading</span><span>node ${held.top} (p=${f(held.top_prob)})</span></div>`:''}
-    ${prev ? `<div class="kv"><span>previous</span><span>${prev.survivors} candidates</span></div>`:''}
-    </div>`;
+    <div class="hero">${held ? held.survivors : T.nodes.length}<small>of ${T.nodes.length} in the 90% set</small></div>
+    ${prev ? `<div class="delta">▼ from ${prev.survivors} before this reading</div>`:''}
+    ${held ? `<div style="margin-top:12px">
+      <div class="kv"><span>entropy</span><b>${f(held.entropy)} bits</b></div>
+      <div class="kv"><span>leading</span><b>node ${held.top} · p=${f(held.top_prob)}</b></div>
+    </div>`:''}</div>`;
   $('left').innerHTML = L;
 
   const I = T.identifiability;
   let R = '';
   if(stage>=NP+1){
     R += `<div class="block"><h2>What pressure cannot resolve</h2>
-      <div class="kv"><span>verdict</span><span>${I.verdict.replace(/_/g,' ').toLowerCase()}</span></div>
-      <div class="kv"><span>unresolvable pairs</span><span>${I.blocked.length} of ${I.n_pairs}</span></div>
-      <div class="rule"></div>`;
+      <div class="kv"><span>verdict</span><b>${I.verdict.replace(/_/g,' ').toLowerCase()}</b></div>
+      <div class="kv"><span>unresolvable pairs</span><b>${I.blocked.length} of ${I.n_pairs}</b></div>
+      <div style="margin-top:11px">`;
     I.blocked.slice(0,6).forEach(b=>{
-      R += `<div class="pair"><span><b>${b[1]}</b> vs <b>${b[2]}</b></span>
+      R += `<div class="pair"><span><em>${b[1]}</em> vs <em>${b[2]}</em></span>
             <span>${f(b[0],3)} psi</span></div>`;
     });
-    R += `<div class="note">These differ by less than the ${f(I.threshold)} psi we can
-      distinguish, anywhere in the network. No probe sequence separates them — the
+    R += `</div><div class="note">These differ by less than the ${f(I.threshold)} psi we
+      can distinguish, anywhere in the network. No probe sequence separates them — the
       information is not there. Best remaining sensor site is node ${I.advice_node}
       at ${f(I.advice_sep,2)} psi.</div></div>`;
   }
   if(stage>=NP+2){
-    const cur = planAt(stage);
-    R += `<div class="block"><h2>Valve search · ${T.isolation.length} configurations</h2>`;
+    R += `<div class="block"><h2>Valve search · ${NPLAN} configurations</h2>`;
     T.isolation.forEach((p,i)=>{
-      const on = (i === stage-NP-2);
-      R += `<div class="plan ${on?'sel':''}">
+      R += `<div class="plan ${i===stage-NP-2?'on':''}">
         <span class="pill ${p.accepted?'yes':'no'}">${p.accepted?'ACCEPTED':'REJECTED'}</span>
-        <div style="margin-top:7px">${p.name}${p.chosen?' <span class="pill yes">CHOSEN</span>':''}</div>
-        <div class="kv"><span>valves turned</span><span>${p.valves}</span></div>
-        <div class="kv"><span>hospital</span><span>${f(p.baseline_psi)} → ${f(p.critical_psi)} psi</span></div>
-        <div class="kv"><span>customers out</span><span>${p.stranded_hydraulics} of ${T.nodes.length}</span></div>
-        <div class="kv"><span>graph walker</span><span>${p.stranded_graph.length} stranded</span></div>
-        <div class="kv"><span>cross-check</span><span style="color:${p.agree?'var(--ok)':'var(--hot)'}">
-          ${p.agree?'AGREE':'DISAGREE'}</span></div></div>`;
+        ${p.chosen?'<span class="pill pick">CHOSEN</span>':''}
+        <div class="nm">${p.name}</div>
+        <div class="kv"><span>valves turned</span><b>${p.valves}</b></div>
+        <div class="kv"><span>hospital</span><b>${f(p.baseline_psi)} → ${f(p.critical_psi)} psi</b></div>
+        <div class="kv"><span>customers out</span><b>${p.stranded_hydraulics} of ${T.nodes.length}</b></div>
+        <div class="kv"><span>graph walker</span><b>${p.stranded_graph.length} stranded</b></div>
+        <div class="kv"><span>cross-check</span>
+          <b style="color:${p.agree?'var(--ok)':'var(--hot)'}">${p.agree?'AGREE':'DISAGREE'}</b></div>
+      </div>`;
     });
-    R += `<div class="note">A walker grows valve rings outward from the break and every
-      configuration is screened twice, independently: graph reachability through open
-      pipe edges, and a pressure-dependent hydraulic run on the same valves. Ranked by
-      holding the hospital, then fewest customers stranded, then fewest valves turned.
-      Modeled service impact, not a safety certification.</div></div>`;
+    R += `<div class="note">A walker grows valve rings outward from the break, and every
+      configuration is screened twice by methods sharing no code: graph reachability
+      through open pipe edges, and a pressure-dependent hydraulic run on the same valves.
+      Modeled service impact — not a safety certification.</div></div>`;
   }
-  if(!R) R = `<div class="block"><h2>Evidence</h2><div class="note">Probe results, what the
-    physics cannot resolve, and the isolation cross-check appear here as the
+  if(!R) R = `<div class="block"><h2>Evidence</h2><div class="note">Probe results, what
+    the physics cannot resolve, and the isolation cross-check appear here as the
     investigation proceeds.</div></div>`;
   $('right').innerHTML = R;
 
   $('hdr').textContent = `district 2 · ${T.nodes.length} junctions · ${T.pipes.length} pipes`;
   $('hdr2').textContent = stage>=NP+1
-    ? `actual break at node ${S.truth} · ${f(S.leak_lps,1)} L/s (${f(S.leak_pct,0)}% of draw)`
-    : `leak location hidden · ${S.sims} hydraulic runs completed`;
+    ? `break at node ${S.truth} · ${f(S.leak_lps,1)} L/s · ${f(S.leak_pct,0)}% of draw`
+    : `leak hidden · ${S.sims} hydraulic runs complete`;
 }
 
 function chips(){
@@ -298,7 +377,8 @@ function chips(){
     else { const p=T.isolation[i-NP-2]; v=f(p.critical_psi,1);
            s=(p.accepted?'psi · accepted':'psi · rejected')+(p.chosen?' ★':''); }
     h += `<div class="st ${i===stage?'on':''}" data-i="${i}">
-            <div class="n">${names[i]}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+            <div class="n">${names[i]}</div><div class="v">${v}</div>
+            <div class="s">${s}</div></div>`;
   }
   $('steps').innerHTML = h;
   document.querySelectorAll('.st').forEach(e=>
@@ -310,7 +390,7 @@ function chips(){
 $('next').onclick = ()=>{ if(stage<LAST){stage++;draw();} };
 $('prev').onclick = ()=>{ if(stage>0){stage--;draw();} };
 document.onkeydown = e=>{
-  if(e.key==='ArrowRight'||e.key===' ') $('next').click();
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); $('next').click(); }
   if(e.key==='ArrowLeft') $('prev').click();
 };
 draw();
