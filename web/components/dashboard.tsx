@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "./logo";
-import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";
+// Aliased: an unaliased `Map` import shadows the global Map constructor used below.
+import { Map as MapIcon, Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 
 type Node = { id: string; x: number; y: number };
 type Source = Node & { kind: "reservoir" | "tank" };
@@ -32,9 +33,12 @@ type Replay = {
 const VIEW = 1000;
 const PAD = 0.07;
 const EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
-// Opaque instrument surfaces, not glass. A blurred translucent panel over a moving
-// field costs legibility on a projector and buys nothing a judge can read.
-const PANEL = "bg-[#08131A] border border-[#142C38] rounded-xl";
+// Frosted glass over the water field: white/8 fill, hairline white/18 edge, wide blur.
+// Chrome only. The map well below is deliberately opaque, because a probability
+// heatmap read through a blur over moving water is the one thing that must stay crisp.
+const PANEL =
+  "backdrop-blur-2xl bg-white/[0.10] border border-white/[0.20] rounded-2xl shadow-[0_10px_40px_-16px_rgba(0,0,0,0.7)]";
+const WELL = "rounded-xl border border-white/10 bg-[#020A11] overflow-hidden";
 // Belief that earns a fully saturated node. Fixed, so heat means the same thing in
 // every frame instead of being relative to whatever the current leader happens to be.
 const FULL_HEAT = 0.5;
@@ -69,6 +73,37 @@ export function Dashboard() {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
+  // The map is evidence, not the answer. It can be put away, and the readouts take the
+  // whole width when it is.
+  const [showMap, setShowMap] = useState(true);
+  // Draggable split, like a pair of editor panes. 70/30 by default: the map needs the
+  // room, the readouts need to stay legible.
+  const [splitPct, setSplitPct] = useState(70);
+  const [dragging, setDragging] = useState(false);
+  const splitRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const move = (e: PointerEvent) => {
+      const el = splitRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setSplitPct(Math.min(82, Math.max(42, ((e.clientX - r.left) / r.width) * 100)));
+    };
+    const up = () => setDragging(false);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    // Held on the body, because the pointer leaves the 14px handle almost immediately
+    // and the cursor would otherwise flicker back mid-drag.
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [dragging]);
 
   useEffect(() => {
     fetch("/replay.json").then((r) => r.json()).then(setData).catch(() => setData(null));
@@ -115,9 +150,14 @@ export function Dashboard() {
   }, [data]);
 
   const shell = (inner: React.ReactNode) => (
-    // No particle field on this route. The heatmap is the science and it needs a
-    // quiet background; a moving field behind it destroys legibility exactly there.
     <div className="h-svh overflow-hidden relative bg-[#00070F]">
+      {/* The frosted-glass template's own background, kept as-is: full-bleed image plus
+          its black scrim. This is what the glass panels above refract. */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/images/dashboard-background.png')" }}
+      />
+      <div className="absolute inset-0 bg-black/30 pointer-events-none" />
       <div className="relative z-10 h-svh p-3 md:p-4 flex flex-col gap-3">{inner}</div>
       <style jsx global>{`
         @keyframes flow { to { stroke-dashoffset: -16; } }
@@ -165,6 +205,177 @@ export function Dashboard() {
   const ranked = Object.entries(current.posterior).sort((a, b) => b[1] - a[1]);
   const armMeta = data.summary.arms.find((a) => a.key === armKey);
   const savedVsFixed = 3 - arm.probesUsed;
+
+  const head = (
+    <div className="flex items-baseline justify-between gap-3 shrink-0 mb-2">
+      <h1 className="font-sentient text-xl md:text-2xl text-white leading-tight">
+        What we know, and what we <i className="font-light">don&apos;t</i>
+      </h1>
+      {/* Lives on the panel it controls. In the command bar it pushed the transport
+          controls onto a second row at 1440. */}
+      <button
+        onClick={() => setShowMap((v) => !v)}
+        title={showMap ? "Put the map away and lead with the numbers" : "Show the network map"}
+        style={{ transition: `all 200ms ${EASE}` }}
+        className={`shrink-0 h-7 px-2 flex items-center gap-1.5 rounded-md border font-mono text-[9px] uppercase tracking-[0.14em] active:scale-[0.97] ${
+          showMap
+            ? "border-white/[0.15] text-white/50 hover:text-white hover:bg-white/[0.07]"
+            : "border-[var(--belief)]/50 text-[var(--belief)] bg-[var(--belief)]/10"
+        }`}
+      >
+        <MapIcon className="h-3 w-3" />
+        {showMap ? "Map on" : "Map off"}
+      </button>
+    </div>
+  );
+
+  // The credible set is the actual output of this system, so it is named and enumerated,
+  // never summarised. It becomes the headline when the map is put away.
+  const credibleBlock = (big: boolean) => (
+    <div className={`shrink-0 ${big ? "" : "mt-3 flex items-start gap-3"}`}>
+      <div className={big ? "" : "shrink-0 pt-0.5"}>
+        <Label>Credible set · 90%</Label>
+        {big ? (
+          <div className="font-mono text-white mt-1.5">
+            <span className="text-5xl tabular-nums">{current.credibleSet.length}</span>
+            <span className="text-sm text-white/45 ml-2.5">of {junctions.length} junctions still in play</span>
+          </div>
+        ) : (
+          <div className="font-mono text-[10px] text-white/35 mt-0.5">
+            {current.credibleSet.length} of {junctions.length} still in play
+          </div>
+        )}
+      </div>
+      <div className={`flex flex-wrap content-start ${big ? "gap-1.5 mt-4" : "gap-1"}`}>
+        {current.credibleSet.map((id) => (
+          <span
+            key={id}
+            onMouseEnter={() => setHover(id)}
+            onMouseLeave={() => setHover(null)}
+            className={`font-mono tabular-nums rounded border ${big ? "text-sm px-2.5 py-1" : "text-[11px] px-1.5 py-0.5"} ${
+              hover === id
+                ? "border-[var(--foam)]/70 text-[var(--foam)] bg-[var(--foam)]/10"
+                : "border-[var(--cost)]/35 text-white/65"
+            }`}
+            style={{ transition: `all 160ms ${EASE}` }}
+          >
+            {id}
+          </span>
+        ))}
+      </div>
+      {big && (
+        <p className="font-mono text-[11px] leading-relaxed text-white/40 mt-5 max-w-[540px]">
+          These are the junctions the pressure evidence cannot separate. Picking one of them is a
+          guess, so the set is the answer we report, and it is what {junctions.length} candidates
+          narrowed to on {probesSoFar} {probesSoFar === 1 ? "reading" : "readings"}.
+        </p>
+      )}
+    </div>
+  );
+
+  // The bottom band: what the network is, and what the four arms measured over 66
+  // incidents. Reference data, so it sits out of the live panes and never scrolls.
+  const bottomStrip = (
+    <footer className={`${PANEL} shrink-0 h-[152px] px-5 py-4 flex items-start gap-6`}>
+      <div className="shrink-0">
+        <Label>Network</Label>
+        <div className="font-mono text-[11px] text-white/65 mt-1 tabular-nums">
+          {junctions.length} junctions · {pipes.length} pipes · {gauges.length} gauges
+        </div>
+        <div className="font-mono text-[10px] text-white/30 mt-0.5 tabular-nums">
+          leak {incident.leakGpm} gpm · gauge noise {data.summary.noisePsi} psi
+        </div>
+      </div>
+
+      {data.fixture && (
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] px-2 py-1 rounded border border-[var(--belief)]/35 text-[var(--belief)]/90">
+          Fixture data
+        </span>
+      )}
+
+      <div className="h-14 w-px bg-white/10 shrink-0 max-md:hidden" />
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-3 mb-1.5">
+          <Label>Measured over {data.summary.nIncidents} incidents</Label>
+          <span className="font-mono text-[10px] text-white/30">
+            top5 accuracy · mean crew dispatches · chance {data.summary.chancePct}%
+          </span>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {[...data.summary.arms.map((a) => ({ ...a, isChance: false })),
+            { key: "__chance", name: "chance", top5Pct: data.summary.chancePct, meanProbes: 0, isChance: true }].map((a) => {
+            const on = armKey === a.key;
+            return (
+              <button
+                key={a.key}
+                onClick={() => !a.isChance && setArmKey(a.key)}
+                disabled={a.isChance}
+                style={{ transition: `all 180ms ${EASE}` }}
+                className={`text-left rounded-lg px-3 py-2 border ${
+                  a.isChance
+                    ? "border-dashed border-white/10 cursor-default"
+                    : on
+                    ? "border-[var(--belief)]/45 bg-[var(--belief)]/[0.07] active:scale-[0.99]"
+                    : "border-white/[0.07] hover:border-white/20 active:scale-[0.99]"
+                }`}
+              >
+                <div className={`font-mono text-[10px] truncate ${a.isChance ? "text-white/30" : on ? "text-[var(--belief)]" : "text-white/50"}`}>
+                  {a.name}
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-0.5 font-mono tabular-nums">
+                  <span className={`text-lg ${a.isChance ? "text-white/30" : on ? "text-[var(--belief)]" : "text-white/80"}`}>
+                    {a.top5Pct}%
+                  </span>
+                  <span className={`text-[10px] ${a.isChance ? "text-white/25" : "text-[var(--cost)]"}`}>
+                    {a.isChance ? "—" : `${a.meanProbes}p`}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="font-mono text-[10px] text-white/30 mt-2.5 truncate">
+          No policy beat the control on accuracy.{" "}
+          {armMeta?.name === "adaptive stopping" ? "This arm" : "Adaptive stopping"} matched them on a third of the
+          dispatches. Reported as measured.
+        </p>
+      </div>
+    </footer>
+  );
+
+  const divider = (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuenow={Math.round(splitPct)}
+      tabIndex={0}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDoubleClick={() => setSplitPct(70)}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowLeft") setSplitPct((v) => Math.max(42, v - 2));
+        if (e.key === "ArrowRight") setSplitPct((v) => Math.min(82, v + 2));
+      }}
+      title="Drag to resize, double-click to reset"
+      className="group relative cursor-col-resize touch-none outline-none max-lg:hidden"
+    >
+      <div
+        className={`absolute inset-y-0 left-1/2 -translate-x-1/2 w-px ${
+          dragging ? "bg-[var(--belief)]/70" : "bg-white/15 group-hover:bg-white/40 group-focus:bg-white/40"
+        }`}
+        style={{ transition: `background 150ms ${EASE}` }}
+      />
+      <div
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-[3px] rounded-full ${
+          dragging ? "bg-[var(--belief)]" : "bg-white/25 group-hover:bg-white/55 group-focus:bg-white/55"
+        }`}
+        style={{ transition: `background 150ms ${EASE}` }}
+      />
+    </div>
+  );
 
   return shell(
     <>
@@ -264,26 +475,16 @@ export function Dashboard() {
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
-        {/* Network */}
-        <section className={`${PANEL} col-span-12 lg:col-span-8 p-4 flex flex-col min-h-0`}>
-          <div className="flex items-baseline justify-between gap-3 shrink-0 mb-2">
-            <h1 className="font-sentient text-xl md:text-2xl text-white">
-              What we know, and what we <i className="font-light">don&apos;t</i>
-            </h1>
-            <div className="flex items-center gap-2.5 shrink-0">
-              <span className="font-mono text-[10px] text-white/40">
-                {junctions.length} junctions · {pipes.length} pipes · {gauges.length} gauges
-              </span>
-              {data.fixture && (
-                <span className="font-mono text-[9px] uppercase tracking-[0.16em] px-2 py-1 rounded border border-[var(--belief)]/35 text-[var(--belief)]/90">
-                  Fixture data
-                </span>
-              )}
-            </div>
-          </div>
+      <div
+        ref={splitRef}
+        className="flex-1 min-h-0 grid max-lg:!grid-cols-1 max-lg:gap-3 max-lg:overflow-y-auto"
+        style={{ gridTemplateColumns: `${splitPct}% 14px minmax(0, 1fr)` }}
+      >
+        {showMap ? (
+        <section className={`${PANEL} p-4 flex flex-col min-h-0 min-w-0`}>
+          {head}
 
-          <div className="flex-1 min-h-0 rounded-xl border border-white/[0.08] bg-[#00070F]/40 overflow-hidden">
+          <div className={`flex-1 min-h-0 ${WELL}`}>
             <svg viewBox={`0 0 ${viewW} ${viewH}`} preserveAspectRatio="xMidYMid meet" className="w-full h-full block">
               <defs>
                 <radialGradient id="peak">
@@ -392,34 +593,7 @@ export function Dashboard() {
             </svg>
           </div>
 
-          {/* The credible set is the actual output of this system, so it is named and
-              enumerated, not summarised. Sits under the map because the ids are only
-              meaningful against it, and the rail has no room at 900px. */}
-          <div className="shrink-0 mt-3 flex items-start gap-3">
-            <div className="shrink-0 pt-0.5">
-              <Label>Credible set · 90%</Label>
-              <div className="font-mono text-[10px] text-white/35 mt-0.5">
-                {current.credibleSet.length} of {junctions.length} still in play
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1 content-start">
-              {current.credibleSet.map((id) => (
-                <span
-                  key={id}
-                  onMouseEnter={() => setHover(id)}
-                  onMouseLeave={() => setHover(null)}
-                  className={`font-mono text-[11px] tabular-nums px-1.5 py-0.5 rounded border ${
-                    hover === id
-                      ? "border-[var(--foam)]/70 text-[var(--foam)] bg-[var(--foam)]/10"
-                      : "border-[var(--cost)]/35 text-white/65"
-                  }`}
-                  style={{ transition: `all 160ms ${EASE}` }}
-                >
-                  {id}
-                </span>
-              ))}
-            </div>
-          </div>
+          {credibleBlock(false)}
 
           {/* Legend */}
           <div className="shrink-0 flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2.5 font-mono text-[10px] text-white/45">
@@ -430,56 +604,18 @@ export function Dashboard() {
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 border border-[#8FA6B4]" /> source</span>
           </div>
 
-          {/* The four-arm comparison lives here, not in the rail: it is a wide table and
-              the rail could not hold it without cutting the probe log off. */}
-          <div className="shrink-0 mt-2.5 pt-2.5 border-t border-white/[0.08]">
-            <div className="flex items-baseline justify-between mb-1.5">
-              <Label>Measured over {data.summary.nIncidents} incidents</Label>
-              <span className="font-mono text-[10px] text-white/30">top5 accuracy · mean crew dispatches</span>
-            </div>
-            <div className="grid grid-cols-5 gap-2">
-              {[...data.summary.arms.map((a) => ({ ...a, isChance: false })),
-                { key: "__chance", name: "chance", top5Pct: data.summary.chancePct, meanProbes: 0, isChance: true }].map((a) => {
-                const on = armKey === a.key;
-                return (
-                  <button
-                    key={a.key}
-                    onClick={() => !a.isChance && setArmKey(a.key)}
-                    disabled={a.isChance}
-                    style={{ transition: `all 180ms ${EASE}` }}
-                    className={`text-left rounded-lg px-2.5 py-1.5 border ${
-                      a.isChance
-                        ? "border-dashed border-white/10 cursor-default"
-                        : on
-                        ? "border-[var(--belief)]/45 bg-[var(--belief)]/[0.07] active:scale-[0.99]"
-                        : "border-white/[0.07] hover:border-white/20 active:scale-[0.99]"
-                    }`}
-                  >
-                    <div className={`font-mono text-[10px] truncate ${a.isChance ? "text-white/30" : on ? "text-[var(--belief)]" : "text-white/50"}`}>
-                      {a.name}
-                    </div>
-                    <div className="flex items-baseline gap-1.5 mt-0.5 font-mono tabular-nums">
-                      <span className={`text-base ${a.isChance ? "text-white/30" : on ? "text-[var(--belief)]" : "text-white/80"}`}>
-                        {a.top5Pct}%
-                      </span>
-                      <span className={`text-[10px] ${a.isChance ? "text-white/25" : "text-[var(--cost)]"}`}>
-                        {a.isChance ? "—" : `${a.meanProbes}p`}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="font-mono text-[10px] text-white/30 mt-2">
-              No policy beat the control on accuracy.{" "}
-              {armMeta?.name === "adaptive stopping" ? "This arm" : "Adaptive stopping"} matched them on a third of the
-              dispatches. Reported as measured.
-            </p>
-          </div>
         </section>
+        ) : (
+        <section className={`${PANEL} p-5 flex flex-col min-h-0 min-w-0`}>
+          {head}
+          <div className="flex-1 min-h-0 flex flex-col justify-center py-2">{credibleBlock(true)}</div>
+        </section>
+        )}
+
+        {divider}
 
         {/* Right rail */}
-        <aside className="col-span-12 lg:col-span-4 min-h-0 flex flex-col gap-3">
+        <aside className="min-h-0 min-w-0 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className={`${PANEL} p-3.5`}>
               <Label>Uncertainty</Label>
@@ -606,6 +742,8 @@ export function Dashboard() {
 
         </aside>
       </div>
+
+      {bottomStrip}
     </>
   );
 }
