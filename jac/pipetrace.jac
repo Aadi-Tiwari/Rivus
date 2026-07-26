@@ -28,7 +28,6 @@ glob INTERCONNECT_HEAD: float = 60.0;
 glob CREW_SPEED: float = 1.2;        # map units per minute
 
 glob NODES: list = [];               # canonical junction order
-glob SIGMA: float = 0.0;
 
 
 def sigma() -> float {
@@ -55,6 +54,12 @@ node Junction {
     has is_critical: bool = False;
     has measured: bool = False;
     has reading_psi: float = 0.0;
+}
+
+node Source {
+    """A tank or reservoir. Without these in the graph the walker cannot see where
+    water enters, and its reachability answer would disagree with the hydraulics."""
+    has name: str;
 }
 
 edge Pipe {
@@ -100,6 +105,11 @@ walker IngestNetwork {
         for j in topo["junctions"] { NODES.append(j); }
 
         made = {};
+        for sname in topo["sources"] {
+            sn = Source(name=sname);
+            made[sname] = sn;
+            here ++> sn;
+        }
         for j in topo["junctions"] {
             c = topo["coords"][j];
             n = Junction(name=j, x=c[0], y=c[1], baseline_psi=base[j],
@@ -188,7 +198,7 @@ walker ScoreProbes {
 
     def mixture_entropy(mu: list, probs: list) -> float {
         """Differential entropy of the predictive Gaussian mixture, by Monte Carlo.""";
-        s = SIGMA;
+        s = sigma();
         total = 0.0;
         i = 0;
         while i < self.draws {
@@ -237,7 +247,7 @@ walker TakeProbe {
         hyps = of_type([-->], Hypothesis);
         total = 0.0;
         for h in hyps {
-            like = math.exp(-0.5 * ((self.reading - h.signature[col]) / SIGMA) ** 2);
+            like = math.exp(-0.5 * ((self.reading - h.signature[col]) / sigma()) ** 2);
             h.prob = h.prob * like;
             total += h.prob;
         }
@@ -305,7 +315,7 @@ walker CheckIdentifiability {
         byloc = {};
         for h in hyps { byloc[h.location] = h; }
 
-        threshold = 2.0 * SIGMA;
+        threshold = 2.0 * sigma();
         n = len(self.survivors);
         self.n_pairs = n * (n - 1) // 2;
 
@@ -377,10 +387,155 @@ walker FloodFromSource {
     """
     has reached: list = [];
 
-    can start with Junction entry {
-        if here.name in self.reached { disengage; }
+    can from_source with Source entry {
         self.reached.append(here.name);
         visit [edge ->:Pipe:closed == False:->];
         visit [edge <-:Pipe:closed == False:<-];
+    }
+
+    can spread with Junction entry {
+        # 'skip' aborts this node only; 'disengage' would kill the whole
+        # walker the first time the flood loops back on itself.
+        if here.name in self.reached { skip; }
+        self.reached.append(here.name);
+        visit [edge ->:Pipe:closed == False:->];
+        visit [edge <-:Pipe:closed == False:<-];
+    }
+}
+
+glob OBSERVED: dict = {};
+glob META: dict = {};   # mutated in place, unlike a glob rebind
+
+walker StageIncident {
+    """Hides a leak and produces what a crew would actually read.
+
+    The observations come from a PERTURBED model: demands and pipe roughness are
+    shifted before the truth snapshot is taken. Without this the diagnosis would be
+    inverting the same simulator that produced the evidence, which proves nothing.
+    """
+    has truth: str;
+    has seed: int = 7;
+    has leak_lps: float = 0.0;
+
+    can stage with entry {
+        random.seed(self.seed);
+        dm = {};
+        rm = {};
+        topo = topology(INP);
+        for j in topo["junctions"] { dm[j] = random.lognormvariate(0.0, DEMAND_CV); }
+        for p in topo["pipes"] { rm[p[0]] = random.lognormvariate(0.0, ROUGH_CV); }
+
+        base = snapshot(INP, demand_mult=dm, rough_mult=rm);
+        leak = snapshot(INP, leak_node=self.truth, leak_c=LEAK_C,
+                        demand_mult=dm, rough_mult=rm);
+        OBSERVED.clear();
+        for j in NODES { OBSERVED[j] = leak[j] - base[j]; }
+
+        head_m = base[self.truth] / 1.4219702063247;
+        if head_m < 0.0 { head_m = 0.0; }
+        self.leak_lps = LEAK_C * math.sqrt(head_m) * 1000.0;
+
+        # the junction the supply main ties into, for isolation flooding
+        for p in topo["pipes"] {
+            if p[1] in topo["sources"] { META["supply"] = p[2]; }
+            elif p[2] in topo["sources"] { META["supply"] = p[1]; }
+        }
+    }
+}
+
+
+def read_gauge(location: str) -> float {
+    """One field measurement: the true residual plus gauge noise.""";
+    return OBSERVED[location] + random.gauss(0.0, GAUGE_NOISE);
+}
+
+
+walker ScreenIsolation {
+    """Screens a repair isolation plan for modeled service impact.
+
+    Two independent methods, deliberately. A walker floods the graph from the supply
+    through pipe edges that are still open, so whatever it cannot reach has lost
+    service by pure topology. Then the pressure-dependent hydraulic model is run on the
+    same valve configuration. If the two disagree, something is wrong and we want to see
+    it rather than trust one of them.
+    """
+    has leak: str;
+    has use_backup: bool = False;
+    has name: str = "";
+    has critical_psi: float = 0.0;
+    has baseline_psi: float = 0.0;
+    has stranded_by_graph: list = [];
+    has out_by_hydraulics: int = 0;
+    has agree: bool = False;
+    has accepted: bool = False;
+    has segment: list = [];
+
+    can screen with entry {
+        juncs = of_type([-->], Junction);
+        target = None;
+        for j in juncs { if j.name == self.leak { target = j; } }
+        supply = of_type([-->], Source)[0];
+
+        # close every pipe edge touching the break: this is the repair segment
+        self.segment = [];
+        for e in [edge target ->:Pipe:->] { e.closed = True; self.segment.append(e.pid); }
+        for e in [edge target <-:Pipe:<-] { e.closed = True; self.segment.append(e.pid); }
+
+        # If the plan opens the emergency interconnect, that main is a real edge and
+        # the graph has to see it. Otherwise the walker reports customers stranded who
+        # are in fact being fed from the backup, and the cross-check is meaningless.
+        backup = None;
+        tie = None;
+        if self.use_backup {
+            for j in juncs { if j.name == INTERCONNECT_FROM { tie = j; } }
+            backup = Source(name="BACKUP");
+            here ++> backup;
+            backup +>:Pipe(pid="BACKUP_MAIN"):+> tie;
+        }
+
+        # method 1 — graph reachability
+        flood = supply spawn FloodFromSource();
+        if backup != None {
+            bflood = backup spawn FloodFromSource();
+            for n in bflood.reached {
+                if n not in flood.reached { flood.reached.append(n); }
+            }
+        }
+        for j in juncs {
+            # the break node is stranded too - it is the one being isolated for repair.
+            # Both methods must count it, or the cross-check is off by one and the
+            # agreement claim is quietly false.
+            if j.name not in flood.reached { self.stranded_by_graph.append(j.name); }
+        }
+
+        # method 2 — pressure-dependent hydraulics on the same valve configuration
+        base = snapshot(INP, pdd=True, service_min_psi=SERVICE_MIN_PSI);
+        ic = None;
+        if self.use_backup { ic = INTERCONNECT_FROM; }
+        after = snapshot(INP, pdd=True, service_min_psi=SERVICE_MIN_PSI,
+                         closed_pipes=self.segment, interconnect_from=ic,
+                         interconnect_head_m=INTERCONNECT_HEAD);
+
+        lost = [];
+        for j in NODES {
+            if after[j] < SERVICE_MIN_PSI and base[j] >= SERVICE_MIN_PSI { lost.append(j); }
+        }
+        self.out_by_hydraulics = len(lost);
+        self.critical_psi = after[CRITICAL_NODE];
+        self.baseline_psi = base[CRITICAL_NODE];
+        self.accepted = self.critical_psi >= CRITICAL_MIN_PSI;
+        self.agree = sorted(self.stranded_by_graph) == sorted(lost);
+
+        # reopen so the graph is clean for the next plan
+        for e in [edge target ->:Pipe:->] { e.closed = False; }
+        for e in [edge target <-:Pipe:<-] { e.closed = False; }
+        if backup != None { del backup; }
+
+        verdict = "REJECTED";
+        if self.accepted { verdict = "ACCEPTED"; }
+        here ++> Finding(kind="isolation", verdict=verdict,
+                         detail=f"{self.name}: critical facility {self.baseline_psi:.2f} "
+                                f"-> {self.critical_psi:.2f} psi, "
+                                f"{self.out_by_hydraulics} junctions out of service");
     }
 }
