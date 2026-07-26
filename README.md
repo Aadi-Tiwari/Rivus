@@ -116,6 +116,19 @@ rm -rf .jac && PYTHONPATH=$PWD ./.venv/bin/jac run jac/intake.jac    # field-not
 open web/index.html                                                  # incident board
 ```
 
+Or one command each: `./demo.sh`, `./demo.sh eval`, `./demo.sh intake`, `./demo.sh test`.
+
+```
+$ ./demo.sh test
+17/17 passed
+```
+
+Several of those tests exist to fail if the project is ever quietly made to overclaim:
+that the truth model really does diverge from the model used to diagnose, that restored
+pressure never exceeds the undisturbed baseline, that identifiability is reported as
+pairs rather than merged clusters, and that both isolation methods agree on every plan
+the search generates.
+
 `rm -rf .jac` matters: Jac persists the graph to disk between runs, so a second run
 stacks another copy of the network onto root and every count silently doubles.
 
