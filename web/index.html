@@ -3,347 +3,350 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PipeTrace — District 2 as-built</title>
+<title>PipeTrace — District 2 leak investigation</title>
 <script src="trace.js"></script>
 <style>
+  /* Palette and rules follow the FT graphics desk: substance over decoration, every
+     graphic carries a title, a key and a source. Paper ground, one accent for the
+     thing that matters, no effects that do not encode information. */
   :root{
-    --ink:#08182B;          /* blueprint ground */
-    --ink2:#0A2039;
-    --line:#7FA8CC;         /* drafting linework */
-    --line-soft:#3E6183;
-    --paper:#EAF2F9;        /* annotation text */
-    --paper-dim:#8FB0CB;
-    --live:#5FD3F0;         /* water */
-    --alarm:#FF5A36;
-    --safe:#4FE0A6;
+    --paper:#FFF1E5;        /* FT paper */
+    --paper2:#F2E5DA;
+    --rule:#E6D9CE;
+    --ink:#1A1817;
+    --ink2:#4A4441;
+    --ink3:#807973;
+    --blue:#0F5499;         /* structure, water */
+    --blue-pale:#B3CBE3;
+    --claret:#990F3D;       /* the leak, the alarm */
+    --teal:#0D7680;         /* verified safe */
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
     --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
-    --disp:"Iowan Old Style",ui-serif,Georgia,"Times New Roman",serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;overflow:hidden}
-  body{background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;
-       -webkit-font-smoothing:antialiased}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;
+       -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
 
-  /* drafting grid, the paper itself */
-  #sheet{position:fixed;inset:0;
-    background-image:
-      linear-gradient(rgba(127,168,204,.055) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(127,168,204,.055) 1px,transparent 1px),
-      linear-gradient(rgba(127,168,204,.11) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(127,168,204,.11) 1px,transparent 1px),
-      radial-gradient(120% 100% at 50% 0%,rgba(95,211,240,.09),transparent 60%);
-    background-size:28px 28px,28px 28px,140px 140px,140px 140px,100% 100%}
+  #page{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;
+        max-width:1560px;margin:0 auto;padding:20px 40px 0}
 
-  svg#plan{position:fixed;inset:0;width:100%;height:100%}
+  /* ---- masthead ---- */
+  .top{display:flex;align-items:baseline;gap:14px;padding-bottom:14px;
+       border-bottom:2px solid var(--ink)}
+  .mark{font-family:var(--disp);font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+  .grow{flex:1}
+  .stamp{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.04em}
 
-  /* ---- title block, bottom-right like a real drawing ---- */
-  .tblock{position:fixed;right:26px;bottom:96px;width:322px;
-          border:1px solid var(--line-soft);background:rgba(8,24,43,.82);
-          backdrop-filter:blur(3px)}
-  .tblock .row{display:flex;border-bottom:1px solid var(--line-soft)}
-  .tblock .row:last-child{border-bottom:0}
-  .tblock .c{padding:7px 10px;border-right:1px solid var(--line-soft);flex:1}
-  .tblock .c:last-child{border-right:0}
-  .tblock .k{font-size:8px;letter-spacing:.19em;color:var(--paper-dim);
-             text-transform:uppercase;display:block;margin-bottom:3px}
-  .tblock .v{font-size:13px;font-variant-numeric:tabular-nums}
-  .tblock .big{font-family:var(--disp);font-size:31px;line-height:1;font-weight:600}
+  /* ---- headline + standfirst ---- */
+  .head{display:grid;grid-template-columns:1fr 330px;gap:56px;
+        padding:16px 0 14px;border-bottom:1px solid var(--rule)}
+  h1{font-family:var(--disp);font-size:clamp(26px,2.7vw,37px);line-height:1.06;
+     font-weight:600;letter-spacing:-.019em;max-width:15ch}
+  h1 em{font-style:italic;color:var(--claret)}
+  .stand{font-size:13.5px;line-height:1.5;color:var(--ink2);max-width:52ch;
+         margin-top:11px}
+  .stand b{font-weight:600;color:var(--ink)}
+  .readout{border-left:2px solid var(--ink);padding-left:16px;align-self:start}
+  .readout .n{font-family:var(--disp);font-size:38px;line-height:1;font-weight:600}
+  .readout .l{font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+              color:var(--ink3);margin-bottom:6px}
+  .readout .d{font-size:12.5px;color:var(--ink2);margin-top:7px}
 
-  /* ---- the one statement ---- */
-  .lede{position:fixed;left:38px;top:34px;max-width:min(41vw,540px)}
-  .lede .eyebrow{font-size:9px;letter-spacing:.3em;color:var(--paper-dim);
-                 text-transform:uppercase;margin-bottom:12px}
-  .lede h1{font-family:var(--disp);font-size:clamp(30px,3.5vw,50px);line-height:1.03;
-           font-weight:600;letter-spacing:-.018em}
-  .lede h1 em{font-style:italic;color:var(--live)}
-  .lede p{margin-top:15px;font-size:12.5px;line-height:1.65;color:var(--paper-dim);
-          max-width:430px}
-  .lede p b{color:var(--paper);font-weight:400}
+  /* ---- figure ---- */
+  .fig{display:grid;grid-template-columns:1fr 330px;gap:56px;min-height:0;padding-top:12px}
+  .plot{position:relative;min-height:0;display:flex;flex-direction:column}
+  svg{width:100%;flex:1;min-height:0;display:block}
+  .key{display:flex;flex-wrap:wrap;gap:18px;padding:12px 0 0;font-size:11.5px;
+       color:var(--ink2);border-top:1px solid var(--rule);margin-top:10px}
+  .key i{display:inline-block;width:16px;height:0;border-top-width:2px;
+         border-top-style:solid;vertical-align:middle;margin-right:6px}
+  .key .dot{display:inline-block;width:8px;height:8px;border-radius:50%;
+            margin-right:6px;vertical-align:middle}
 
-  /* ---- drafting callouts on the sheet ---- */
-  .note{position:fixed;font-size:10.5px;line-height:1.5;letter-spacing:.02em;
-        color:var(--paper-dim);max-width:250px}
-  .note h4{display:block;color:var(--paper);letter-spacing:.16em;font-size:8.5px;
-           text-transform:uppercase;margin-bottom:6px;font-weight:400}
-  .note b{color:var(--paper);font-weight:400}
-  .note b.hi{color:var(--live)}
-  #noteA{left:38px;bottom:150px}
-  #noteB{right:26px;top:34px;width:322px;max-width:322px;text-align:left}
+  /* ---- side column ---- */
+  .side{overflow-y:auto;padding-bottom:8px}
+  .side::-webkit-scrollbar{width:4px}
+  .side::-webkit-scrollbar-thumb{background:var(--rule)}
+  h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+     padding-bottom:7px;border-bottom:1px solid var(--ink);margin-bottom:11px}
+  .blk{margin-bottom:26px}
+  .row{display:flex;justify-content:space-between;gap:14px;padding:5px 0;
+       font-size:13px;border-bottom:1px solid var(--rule)}
+  .row span{color:var(--ink2)}
+  .row b{font-weight:600;font-family:var(--mono);font-size:12px}
+  .row.win b{color:var(--teal)}
+  .row.bad b{color:var(--claret)}
+  .cap{font-size:12px;line-height:1.5;color:var(--ink2);margin-top:10px}
+  .cap b{font-weight:600;color:var(--ink)}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+  .tag{font-family:var(--mono);font-size:11px;padding:2px 7px;border:1px solid var(--rule);
+       background:var(--paper2)}
+  .tag.lead{border-color:var(--claret);color:var(--claret)}
 
-  /* ---- filmstrip ---- */
-  .strip{position:fixed;left:0;right:0;bottom:0;height:74px;display:flex;
-         border-top:1px solid var(--line-soft);background:rgba(6,19,34,.92);
-         backdrop-filter:blur(6px)}
-  .cell{flex:1;padding:11px 14px;cursor:pointer;border-right:1px solid rgba(62,97,131,.4);
-        position:relative;transition:background .18s;min-width:0}
-  .cell:hover{background:rgba(95,211,240,.05)}
-  .cell.on{background:rgba(95,211,240,.09)}
-  .cell.on::before{content:"";position:absolute;left:0;right:0;top:-1px;height:2px;
-                   background:var(--live)}
-  .cell .k{font-size:8px;letter-spacing:.19em;color:var(--paper-dim);text-transform:uppercase}
-  .cell .v{font-family:var(--disp);font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
-  .cell.on .v{color:var(--live)}
-  .cell .s{font-size:9px;color:var(--paper-dim);white-space:nowrap;overflow:hidden;
+  /* ---- footer: steps + source, as a figure's furniture ---- */
+  .foot{border-top:2px solid var(--ink);margin-top:14px}
+  .steps{display:flex}
+  .cell{flex:1;padding:10px 12px 12px;cursor:pointer;border-right:1px solid var(--rule);
+        min-width:0}
+  .cell:last-child{border-right:0}
+  .cell:hover{background:var(--paper2)}
+  .cell.on{background:var(--ink);color:var(--paper)}
+  .cell.on .k,.cell.on .s{color:rgba(255,241,229,.62)}
+  .cell .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+  .cell .v{font-family:var(--disp);font-size:21px;line-height:1.25;font-weight:600}
+  .cell .s{font-size:10.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;
            text-overflow:ellipsis}
-  .keys{position:fixed;right:26px;bottom:82px;font-size:8.5px;letter-spacing:.17em;
-        color:var(--line-soft);text-transform:uppercase}
+  .src{display:flex;justify-content:space-between;padding:9px 2px 14px;
+       font-size:10.5px;color:var(--ink3);font-family:var(--mono)}
 
   @media (prefers-reduced-motion:no-preference){
     .flow{animation:flow linear infinite}
     @keyframes flow{to{stroke-dashoffset:-200}}
-    .pulse{animation:pulse 2.6s ease-in-out infinite}
-    @keyframes pulse{0%,100%{opacity:.32}50%{opacity:.9}}
   }
 </style>
 </head>
 <body>
-<div id="sheet"></div>
-<svg id="plan" preserveAspectRatio="xMidYMid meet"></svg>
+<div id="page">
+  <div class="top">
+    <span class="mark">PipeTrace</span>
+    <span class="kicker">District 2 · leak investigation</span>
+    <span class="grow"></span>
+    <span class="stamp" id="stamp"></span>
+  </div>
 
-<div class="lede">
-  <div class="eyebrow" id="eyebrow"></div>
-  <h1 id="head"></h1>
-  <p id="sub"></p>
+  <div class="head">
+    <div>
+      <h1 id="h1"></h1>
+      <div class="stand" id="stand"></div>
+    </div>
+    <div class="readout">
+      <div class="l" id="rl"></div>
+      <div class="n" id="rn"></div>
+      <div class="d" id="rd"></div>
+    </div>
+  </div>
+
+  <div class="fig">
+    <div class="plot">
+      <svg id="plot" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="key" id="key"></div>
+    </div>
+    <div class="side" id="side"></div>
+  </div>
+
+  <div class="foot">
+    <div class="steps" id="steps"></div>
+    <div class="src">
+      <span id="src"></span>
+      <span>← → to step through</span>
+    </div>
+  </div>
 </div>
 
-<div class="note" id="noteB"></div>
-<div class="note" id="noteA"></div>
-
-<div class="tblock" id="tblock"></div>
-<div class="keys">← → to step</div>
-<div class="strip" id="strip"></div>
-
 <script>
-const T = window.TRACE, S = T.scenario;
-const $ = i => document.getElementById(i);
-const f = (v,n=2) => Number(v).toFixed(n);
-const NP = T.steps.length, NPLAN = T.isolation.length;
-const LAST = NP + 1 + NPLAN;
-let stage = NP + 1 + Math.max(0, T.isolation.findIndex(p=>p.chosen));
+const T=window.TRACE,S=T.scenario;
+const $=i=>document.getElementById(i), f=(v,n=2)=>Number(v).toFixed(n);
+const NP=T.steps.length,NPLAN=T.isolation.length,LAST=NP+1+NPLAN;
+let stage=NP+1+Math.max(0,T.isolation.findIndex(p=>p.chosen));
 
-const byName = {}; T.nodes.forEach(n=>byName[n.name]=n);
+const by={}; T.nodes.forEach(n=>by[n.name]=n);
+// quarter turn: the district is tall and narrow, the figure area is wide
+const px=n=>n.y, py=n=>-n.x;
+const XS=T.nodes.map(px),YS=T.nodes.map(py),M=7;
+const bb={x0:Math.min(...XS)-M,y0:Math.min(...YS)-M,
+          w:Math.max(...XS)-Math.min(...XS)+M*2,h:Math.max(...YS)-Math.min(...YS)+M*2};
+$('plot').setAttribute('viewBox',`${bb.x0} ${bb.y0} ${bb.w} ${bb.h}`);
+const U=bb.w/100;
 
-// The network is tall and narrow. A drawing is laid out to fill its sheet, so rotate it
-// a quarter turn to use the landscape screen instead of letterboxing two thirds of it.
-const R = true;
-const px = n => R ? n.y : n.x, py = n => R ? -n.x : n.y;
-const XS = T.nodes.map(px), YS = T.nodes.map(py), M = 9;
-const bb = {x0:Math.min(...XS)-M, y0:Math.min(...YS)-M,
-            w:Math.max(...XS)-Math.min(...XS)+M*2, h:Math.max(...YS)-Math.min(...YS)+M*2};
-$('plan').setAttribute('viewBox',`${bb.x0} ${bb.y0} ${bb.w} ${bb.h}`);
-const U = bb.w/100;
-
-const posteriorAt = s => s<1
-  ? Object.fromEntries(T.nodes.map(n=>[n.name,1/T.nodes.length]))
-  : T.steps[Math.min(s,NP)-1].posterior;
-const planAt = s => (s>=NP+2 && s<=NP+1+NPLAN) ? T.isolation[s-NP-2] : null;
-function credible(post,mass=0.9){
-  const r=Object.entries(post).sort((a,b)=>b[1]-a[1]); const o=[]; let a=0;
-  for(const [n,p] of r){o.push(n); a+=p; if(a>=mass) break;} return o;
-}
+const post=s=>s<1?Object.fromEntries(T.nodes.map(n=>[n.name,1/T.nodes.length]))
+                 :T.steps[Math.min(s,NP)-1].posterior;
+const planAt=s=>(s>=NP+2&&s<=NP+1+NPLAN)?T.isolation[s-NP-2]:null;
+function credible(p,m=.9){const r=Object.entries(p).sort((a,b)=>b[1]-a[1]);
+  const o=[];let a=0;for(const[n,q]of r){o.push(n);a+=q;if(a>=m)break}return o}
 
 function draw(){
-  const post = posteriorAt(stage);
-  const plan = planAt(stage);
-  const dead = plan ? plan.stranded_graph : [];
-  const cut  = plan ? plan.segment : [];
-  const probed = T.steps.slice(0,Math.min(stage,NP)).map(s=>s.chosen);
-  const surv = stage>=1 ? credible(post) : [];
-  const fused = stage===NP+1
-    ? [...new Set(T.identifiability.blocked.flatMap(b=>[b[1],b[2]]))] : [];
+  const P=post(stage), plan=planAt(stage);
+  const dead=plan?plan.stranded_graph:[], cut=plan?plan.segment:[];
+  const probed=T.steps.slice(0,Math.min(stage,NP)).map(s=>s.chosen);
+  const surv=stage>=1?credible(P):[];
+  let g='';
 
-  let g = `<defs>
-    <filter id="gl" x="-70%" y="-70%" width="240%" height="240%">
-      <feGaussianBlur stdDeviation="${U*.7}" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-  </defs>`;
-
-  // belief, rendered as survey contour rings rather than a coloured blob
-  T.nodes.forEach(n=>{
-    const rel=(post[n.name]||0)*T.nodes.length;
-    if(rel>1.4){
-      const k=Math.min(rel,9);
-      for(let i=1;i<=3;i++)
-        g+=`<circle cx="${px(n)}" cy="${py(n)}" r="${U*(1+k*.62*i/2)}" fill="none"
-            stroke="var(--alarm)" stroke-opacity="${.36/i}" stroke-width="${U*.13}"/>`;
-    }
-  });
-
-  // mains: drafting hairline, with live water drawn over the ones still charged
+  // mains. Potable water is drawn line-dash-dash on utility plans; live supply gets a
+  // moving highlight because that encodes which mains are still charged.
   T.pipes.forEach(p=>{
-    const a=byName[p.a],b=byName[p.b]; if(!a||!b) return;
+    const a=by[p.a],b=by[p.b]; if(!a||!b)return;
     const isCut=cut.includes(p.pid), off=dead.includes(p.a)&&dead.includes(p.b);
     g+=`<line x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}"
-         stroke="${isCut?'var(--alarm)':off?'#173049':'var(--line)'}"
-         stroke-opacity="${isCut?.9:off?1:.55}" stroke-width="${U*.17}"/>`;
+      stroke="${isCut?'var(--claret)':off?'#CFC3B8':'var(--blue)'}"
+      stroke-opacity="${off?1:isCut?1:.5}" stroke-width="${U*(isCut?.28:.2)}"
+      stroke-dasharray="${off?U*.9+' '+U*.9:'none'}"/>`;
     if(!isCut&&!off){
       const L=Math.hypot(px(b)-px(a),py(b)-py(a));
       g+=`<line x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}" class="flow"
-           stroke="var(--live)" stroke-opacity=".5" stroke-width="${U*.3}"
-           stroke-linecap="round" stroke-dasharray="${U*.9} ${U*4.4}" pathLength="200"
-           style="animation-duration:${(2.4+L/30).toFixed(2)}s"/>`;
+        stroke="var(--blue)" stroke-opacity=".9" stroke-width="${U*.2}"
+        stroke-linecap="round" stroke-dasharray="${U*.7} ${U*5}" pathLength="200"
+        style="animation-duration:${(3+L/26).toFixed(2)}s"/>`;
     }
     if(isCut){
       const mx=(px(a)+px(b))/2,my=(py(a)+py(b))/2;
-      const ang=Math.atan2(py(b)-py(a),px(b)-px(a))*180/Math.PI;
-      g+=`<g transform="translate(${mx} ${my}) rotate(${ang})" filter="url(#gl)">
-        <line x1="${-U*.5}" y1="${-U*1.5}" x2="${-U*.5}" y2="${U*1.5}"
-          stroke="var(--alarm)" stroke-width="${U*.26}"/>
-        <line x1="${U*.5}" y1="${-U*1.5}" x2="${U*.5}" y2="${U*1.5}"
-          stroke="var(--alarm)" stroke-width="${U*.26}"/></g>`;
+      const an=Math.atan2(py(b)-py(a),px(b)-px(a))*180/Math.PI;
+      g+=`<g transform="translate(${mx} ${my}) rotate(${an})">
+        <line x1="0" y1="${-U*1.1}" x2="0" y2="${U*1.1}" stroke="var(--claret)"
+          stroke-width="${U*.3}"/></g>`;
     }
   });
 
-  // junctions as survey marks
+  // junctions, directly labelled where they carry meaning
   T.nodes.forEach(n=>{
-    const off=dead.includes(n.name), pr=probed.includes(n.name);
-    const fu=fused.includes(n.name), inSet=surv.includes(n.name);
-    c = off?'#20415F':'var(--line)';
-    if(inSet) c='var(--alarm)';
-    if(pr) c='var(--live)';
-    if(n.critical) c = off?'var(--alarm)':'var(--safe)';
-    const r = n.critical?U*.85:U*.45;
-    g+=`<circle cx="${px(n)}" cy="${py(n)}" r="${r}" fill="var(--ink)" stroke="${c}"
-         stroke-width="${U*.17}"${(pr||n.critical||inSet)?' filter="url(#gl)"':''}/>`;
+    const off=dead.includes(n.name), pr=probed.includes(n.name), inSet=surv.includes(n.name);
+    let fill='var(--paper)', stroke='var(--blue)', r=U*.42;
+    if(off){stroke='#CFC3B8'}
+    if(inSet){stroke='var(--claret)';fill='var(--claret)';r=U*.58}
+    if(pr){stroke='var(--ink)';fill='var(--ink)';r=U*.5}
+    if(n.critical){stroke=off?'var(--claret)':'var(--teal)';fill='var(--paper)';r=U*.8}
+    g+=`<circle cx="${px(n)}" cy="${py(n)}" r="${r}" fill="${fill}" stroke="${stroke}"
+        stroke-width="${U*.18}"/>`;
 
     if(n.critical){
-      const cc=off?'var(--alarm)':'var(--safe)';
-      // leader points inboard: a label that runs off the sheet edge is a drawing error
-      const right = px(n) > bb.x0 + bb.w*0.62;
-      const d = right ? -1 : 1;
-      g+=`<circle cx="${px(n)}" cy="${py(n)}" r="${U*2.1}" fill="none" stroke="${cc}"
-            stroke-opacity=".5" stroke-width="${U*.11}" class="pulse"/>
-        <line x1="${px(n)+d*U*2.1}" y1="${py(n)}" x2="${px(n)+d*U*4.6}" y2="${py(n)}"
-            stroke="${cc}" stroke-width="${U*.09}" stroke-opacity=".65"/>
-        <text x="${px(n)+d*U*5}" y="${py(n)+U*.55}" font-size="${U*1.5}" fill="${cc}"
-            text-anchor="${right?'end':'start'}"
-            letter-spacing="${U*.15}" font-family="var(--mono)">CRITICAL · HOSPITAL</text>`;
+      const c=off?'var(--claret)':'var(--teal)', right=px(n)>bb.x0+bb.w*.6, d=right?-1:1;
+      g+=`<line x1="${px(n)+d*U*1.3}" y1="${py(n)}" x2="${px(n)+d*U*3.4}" y2="${py(n)}"
+          stroke="${c}" stroke-width="${U*.11}"/>
+        <text x="${px(n)+d*U*3.8}" y="${py(n)+U*.5}" font-size="${U*1.45}" fill="${c}"
+          text-anchor="${right?'end':'start'}" font-family="var(--sans)"
+          font-weight="600">Hospital${off?' — no supply':''}</text>`;
     }
     if(pr){
       const k=probed.indexOf(n.name)+1;
-      g+=`<line x1="${px(n)}" y1="${py(n)-U*1.1}" x2="${px(n)}" y2="${py(n)-U*3}"
-            stroke="var(--live)" stroke-width="${U*.09}" stroke-opacity=".7"/>
-        <text x="${px(n)}" y="${py(n)-U*3.6}" font-size="${U*1.35}" fill="var(--live)"
-            text-anchor="middle" font-family="var(--mono)">P${k} · ${n.name}</text>`;
-    }
-    if(inSet&&!pr){
-      const rt = px(n) > bb.x0 + bb.w*0.9;
-      g+=`<text x="${px(n)+(rt?-U*1.5:U*1.5)}" y="${py(n)-U*1.2}" font-size="${U*1.35}"
-            text-anchor="${rt?'end':'start'}"
-            fill="var(--alarm)" font-family="var(--mono)">${n.name}</text>`;
+      g+=`<text x="${px(n)}" y="${py(n)-U*1.5}" font-size="${U*1.35}" fill="var(--ink)"
+          text-anchor="middle" font-weight="600" font-family="var(--sans)">${k}</text>`;
+    } else if(inSet){
+      const rt=px(n)>bb.x0+bb.w*.88;
+      g+=`<text x="${px(n)+(rt?-U*1.1:U*1.1)}" y="${py(n)-U*1}" font-size="${U*1.3}"
+          fill="var(--claret)" text-anchor="${rt?'end':'start'}"
+          font-family="var(--sans)">${n.name}</text>`;
     }
   });
 
   if(stage>=NP+1){
-    const t=byName[S.truth];
-    if(t) g+=`<g filter="url(#gl)">
-      <circle cx="${px(t)}" cy="${py(t)}" r="${U*1.7}" fill="none" stroke="#fff"
-        stroke-opacity=".85" stroke-width="${U*.16}" stroke-dasharray="${U*.5} ${U*.45}"/>
-      <text x="${px(t)}" y="${py(t)+U*3.8}" font-size="${U*1.35}" fill="#fff"
-        opacity=".8" text-anchor="middle" font-family="var(--mono)">BREAK · ${S.truth}</text></g>`;
+    const t=by[S.truth];
+    if(t)g+=`<circle cx="${px(t)}" cy="${py(t)}" r="${U*1.6}" fill="none" stroke="var(--ink)"
+      stroke-width="${U*.16}"/>
+      <text x="${px(t)}" y="${py(t)+U*3.4}" font-size="${U*1.35}" fill="var(--ink)"
+      text-anchor="middle" font-family="var(--sans)" font-weight="600">Actual break</text>`;
   }
-  $('plan').innerHTML=g;
-  chrome();
-  strip();
+  $('plot').innerHTML=g;
+
+  const k=[`<span><i style="border-color:var(--blue)"></i>charged main</span>`,
+           `<span><i style="border-color:#CFC3B8;border-top-style:dashed"></i>no supply</span>`,
+           `<span><i style="border-color:var(--claret)"></i>valve closed</span>`,
+           `<span><span class="dot" style="background:var(--claret)"></span>still possible</span>`,
+           `<span><span class="dot" style="background:var(--ink)"></span>gauge reading taken</span>`,
+           `<span><span class="dot" style="border:2px solid var(--teal)"></span>critical facility</span>`];
+  $('key').innerHTML=k.join('');
+  side(); steps();
 }
 
-function chrome(){
-  const st = (stage>=1&&stage<=NP)?T.steps[stage-1]:null;
-  const held = stage>=1?T.steps[Math.min(stage,NP)-1]:null;
-  const plan = planAt(stage);
-  const I = T.identifiability;
-  const prior = Math.log2(T.nodes.length);
-  const net3 = (T.measured||[]).find(m=>m.junctions>50);
+function side(){
+  const st=(stage>=1&&stage<=NP)?T.steps[stage-1]:null;
+  const held=stage>=1?T.steps[Math.min(stage,NP)-1]:null;
+  const prev=stage>=2?T.steps[Math.min(stage,NP)-2]:null;
+  const plan=planAt(stage), I=T.identifiability;
+  const prior=Math.log2(T.nodes.length);
+  const n3=(T.measured||[]).find(m=>m.junctions>50);
+  const n2=(T.measured||[]).find(m=>m.junctions<50);
 
-  let eye='District 2 · as-built', h='', sub='';
+  let h1,stand,rl,rn,rd;
   if(stage===0){
-    eye='District 2 · as-built';
-    h=`Somewhere under<br>these streets`;
-    sub=`A main has failed. <b>${T.nodes.length} junctions</b> could be responsible. One crew
-      check costs an hour; the wrong excavation costs about twenty thousand dollars.`;
+    h1=`A main has failed somewhere under these streets`;
+    stand=`<b>${T.nodes.length} junctions</b> could be responsible. One crew check costs an
+      hour. The wrong excavation costs about twenty thousand dollars.`;
+    rl='Candidates'; rn=T.nodes.length; rd='every junction, equally likely';
   } else if(st){
-    eye=`Probe ${st.step} of ${NP} · gauge at node ${st.chosen}`;
-    h=`${held.survivors} <em>still possible</em>`;
-    sub=`Reading <b>${st.reading>=0?'+':''}${f(st.reading)} psi</b> at node ${st.chosen},
-      chosen because it removes more uncertainty than any other hydrant
-      (<b>${f(st.bits)} bits</b>, ${f(st.minutes,0)} min away).`;
+    h1=`Reading ${st.reading>=0?'+':''}${f(st.reading)} psi at node ${st.chosen}`;
+    stand=`Chosen because it removes more uncertainty than any other hydrant on the
+      network — <b>${f(st.bits)} bits</b>, ${f(st.minutes,0)} minutes away. ${prev?
+      `Candidates fall from ${prev.survivors} to ${held.survivors}.`:
+      `Candidates fall from ${T.nodes.length} to ${held.survivors}.`}`;
+    rl='Still possible'; rn=held.survivors; rd=`of ${T.nodes.length} · ${f(held.entropy)} bits left`;
   } else if(stage===NP+1){
-    eye='The limit of the evidence';
-    h=`What we know, and<br>what we <em>don't</em>`;
-    sub=`${I.blocked.length} of ${I.n_pairs} surviving pairs differ by less than the
+    h1=`What we know, and what we <em>don't</em>`;
+    stand=`<b>${I.blocked.length} of ${I.n_pairs}</b> surviving pairs differ by less than the
       <b>${f(I.threshold)} psi</b> we can distinguish — anywhere in the network. No probe
-      separates them. We report a set, never a pipe.`;
+      sequence separates them. We report a set, never a single pipe.`;
+    rl='Inseparable pairs'; rn=I.blocked.length; rd=`smallest gap ${f(I.blocked[0]?I.blocked[0][0]:0,3)} psi`;
   } else if(plan){
-    eye=`Isolation · ${plan.name}`;
-    h=plan.accepted?`Hospital holds<br><em>${f(plan.critical_psi)} psi</em>`
-                   :`Hospital falls to<br><em>${f(plan.critical_psi)} psi</em>`;
-    sub=`Closing ${plan.valves||plan.segment.length} valve(s) leaves
+    h1=plan.accepted?`The hospital holds at ${f(plan.critical_psi)} psi`
+                    :`This shutdown drops the hospital to ${f(plan.critical_psi)} psi`;
+    stand=`Closing ${plan.valves||plan.segment.length} valve(s) leaves
       <b>${plan.stranded_hydraulics} of ${T.nodes.length}</b> junctions without service.
-      Checked twice: a walker over the graph, and a pressure-dependent hydraulic run.`;
+      Checked two ways that share no code: reachability across the pipe graph, and a
+      pressure-dependent hydraulic run on the same valve set.`;
+    rl='Hospital pressure'; rn=f(plan.critical_psi,1);
+    rd=`psi · was ${f(plan.baseline_psi,1)} before the work`;
   }
-  $('eyebrow').textContent=eye; $('head').innerHTML=h; $('sub').innerHTML=sub;
+  $('h1').innerHTML=h1; $('stand').innerHTML=stand;
+  $('rl').textContent=rl; $('rn').textContent=rn; $('rd').textContent=rd;
+  $('stamp').textContent=`${T.nodes.length} junctions · ${T.pipes.length} mains · `
+    +`${S.sims} hydraulic runs in ${f(S.sim_seconds)}s`;
+  $('src').textContent=`Source: EPA EPANET Net2, pressure-dependent demand. Gauge σ `
+    +`${f(S.sigma)} psi. Readings drawn from a perturbed model, not the one used to diagnose.`;
 
-  // upper-right callout: what the evidence supports
-  let b='';
+  let R='';
   if(stage>=1){
-    const surv=credible(posteriorAt(stage));
-    b=`<h4>90% credible set</h4>${surv.join('  ·  ')}
-       <div style="margin-top:8px">${surv.length} of ${T.nodes.length} junctions still in
-       play. Top-1 is not a call we make.</div>`;
+    const surv=credible(post(stage));
+    R+=`<div class="blk"><h2>Still in play</h2>
+      <div class="tags">${surv.map((n,i)=>`<span class="tag ${i===0?'lead':''}">${n}</span>`).join('')}</div>
+      <div class="cap">${surv.length} of ${T.nodes.length} junctions hold 90% of the
+      belief. Top-1 is not a call we make.</div></div>`;
   }
-  if(stage>=NP+2 && T.candidates){
-    b=`<h4>Plan per candidate</h4>`;
+  if(stage>=NP+2&&T.candidates){
+    R+=`<div class="blk"><h2>Shutdown per candidate</h2>`;
     T.candidates.forEach(c=>{
       const bad=c.naive_critical_psi<S.critical_min_psi;
-      b+=`<div style="margin:7px 0;padding-left:9px;border-left:1px solid ${bad?'var(--alarm)':'var(--line-soft)'}">
-        node ${c.candidate} · p=${f(c.probability,2)} — safe plan holds
-        ${f(c.critical_psi,0)} psi${bad?`, wrong valves drop it to
-        <span style="color:var(--alarm)">${f(c.naive_critical_psi)} psi</span>`:''}</div>`;
+      R+=`<div class="row ${bad?'bad':'win'}"><span>node ${c.candidate} · p=${f(c.probability,2)}</span>
+        <b>${f(c.critical_psi,0)} psi safe${bad?` / ${f(c.naive_critical_psi)} wrong`:''}</b></div>`;
     });
+    R+=`<div class="cap">The exact junction is identified about 10% of the time, so every
+      candidate still supported gets its own shutdown plan. At two of these, a wrong
+      valve choice puts the hospital at <b>2 psi</b>.</div></div>`;
   }
-  $('noteB').innerHTML=b;
-
-  // lower-left callout: the measured result
-  $('noteA').innerHTML = net3 ? `<h4>Measured against a random control</h4>
-    On a ${net3.junctions}-junction district, information-gain probing finds the exact
-    junction <b class="hi">${f(net3.info_top1,1)}%</b> of the time against <b>${f(net3.rand_top1,1)}%</b>
-    by chance, and lands <b class="hi">${f(net3.lift,0)}% closer</b>. On the 35-junction network above
-    it has no measurable advantage — we report both.` : '';
-
-  const bits = held?held.entropy:prior;
-  $('tblock').innerHTML=`
-    <div class="row"><div class="c"><span class="k">Uncertainty</span>
-      <span class="v big">${f(bits)}</span> <span class="k" style="display:inline">bits</span></div>
-      <div class="c"><span class="k">Dispatches</span>
-      <span class="v big">${Math.min(stage,NP)}</span>
-      <span class="k" style="display:inline">of ${NP}</span></div></div>
-    <div class="row"><div class="c"><span class="k">Drawing</span>
-      <span class="v">NET2 · D2</span></div>
-      <div class="c"><span class="k">Runs</span><span class="v">${S.sims} / ${f(S.sim_seconds)}s</span></div>
-      <div class="c"><span class="k">Gauge σ</span><span class="v">${f(S.sigma)}</span></div></div>`;
+  if(n3){
+    R+=`<div class="blk"><h2>Measured against a random control</h2>
+      <div class="row win"><span>${n3.junctions}-junction district</span><b>+${f(n3.lift,0)}% closer</b></div>
+      <div class="row"><span>finds exact junction</span><b>${f(n3.info_top1,1)}% vs ${f(n3.rand_top1,1)}%</b></div>
+      <div class="row"><span>${n2.junctions}-junction network</span><b>no advantage</b></div>
+      <div class="cap">Our first figure was 43% closer. A teammate's non-circularity test
+      proved that setup was marking its own homework, so it was withdrawn. This is what
+      survived: nothing on the small network, <b>3.6× better than chance</b> on a real
+      district at p&lt;0.01. 105 incidents per arm.</div></div>`;
+  }
+  $('side').innerHTML=R;
 }
 
-function strip(){
-  const names=['At rest',...T.steps.map(s=>`Probe ${s.step}`),'Limits',
-               ...T.isolation.map((p,i)=>`Plan ${String.fromCharCode(65+i)}`)];
+function steps(){
+  const nm=['At rest',...T.steps.map(s=>`Probe ${s.step}`),'The limit',
+            ...T.isolation.map((p,i)=>`Shutdown ${String.fromCharCode(65+i)}`)];
   let h='';
   for(let i=0;i<=LAST;i++){
     let v,s;
-    if(i===0){v=T.nodes.length;s='candidates';}
-    else if(i<=NP){v=T.steps[i-1].survivors;s=`gauge at ${T.steps[i-1].chosen}`;}
-    else if(i===NP+1){v=T.identifiability.blocked.length;s='inseparable pairs';}
+    if(i===0){v=T.nodes.length;s='candidates'}
+    else if(i<=NP){v=T.steps[i-1].survivors;s=`gauge at ${T.steps[i-1].chosen}`}
+    else if(i===NP+1){v=T.identifiability.blocked.length;s='inseparable pairs'}
     else{const p=T.isolation[i-NP-2];v=f(p.critical_psi,1);
-         s=(p.accepted?'psi · safe':'psi · rejected')+(p.chosen?' ★':'');}
-    h+=`<div class="cell ${i===stage?'on':''}" data-i="${i}">
-      <div class="k">${names[i]}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+         s=(p.accepted?'psi · safe':'psi · rejected')+(p.chosen?' · chosen':'')}
+    h+=`<div class="cell ${i===stage?'on':''}" data-i="${i}"><div class="k">${nm[i]}</div>
+        <div class="v">${v}</div><div class="s">${s}</div></div>`;
   }
-  $('strip').innerHTML=h;
-  document.querySelectorAll('.cell').forEach(e=>e.onclick=()=>{stage=+e.dataset.i;draw();});
+  $('steps').innerHTML=h;
+  document.querySelectorAll('.cell').forEach(e=>e.onclick=()=>{stage=+e.dataset.i;draw()});
 }
 
 document.onkeydown=e=>{
-  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault(); if(stage<LAST){stage++;draw();}}
-  if(e.key==='ArrowLeft'&&stage>0){stage--;draw();}
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();if(stage<LAST){stage++;draw()}}
+  if(e.key==='ArrowLeft'&&stage>0){stage--;draw()}
 };
 draw();
 </script>
