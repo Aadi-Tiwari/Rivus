@@ -1,8 +1,21 @@
-.venv/
-__pycache__/
+# EPANET run artifacts. temp.inp is the network definition and IS tracked,
+# Local tooling output
+# Node / Next
+# Python / Jac
+# because scripts/make-fixture.mjs parses it to regenerate public/replay.json.
+*.log
 *.pyc
+*.tsbuildinfo
+.DS_Store
 .jac/
+.next/
+.playwright-mcp/
+.venv/
 __jac_gen__/
+__pycache__/
+next-env.d.ts
+node_modules/
+out/
 temp.bin
 temp.inp
 temp.rpt
