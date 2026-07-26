@@ -8,7 +8,7 @@ so the control is not optional here.
     jac run jac/evaluate.jac
 """
 
-include diagnose;
+include graphops;
 
 
 walker ResetBelief {

@@ -1,16 +1,15 @@
-"""PipeTrace — the reasoning.
+"""PipeTrace — graph reasoning.  [ OWNER: Person A ]
 
-Belief over leak locations, which measurement to take next, what pressure cannot
-resolve, and whether a valve plan strands anyone. The physical model it reasons about
-lives in network.jac.
+Probe ranking, identifiability, and isolation islands. These are the parts that are
+genuinely graph theory: connectivity under edge removal, and which junctions the
+network's hydraulics fuse together so that no measurement can separate them.
 
-Nothing here calls a language model. Every number is Bayes over EPANET output.
+Numerical helpers (posterior, expected information) come from simulate.jac.
 """
 
-include network;
+include simulate;
 
 
-# -------------------------------------------------------------------- inference
 walker ScoreProbes {
     """Ranks every possible measurement by expected information gain.
 
@@ -39,7 +38,7 @@ walker ScoreProbes {
 
             mu = [];
             for h in hyps { mu.append(h.signature[col]); }
-            bits = self.mixture_entropy(mu, probs);
+            bits = expected_information(mu, probs, self.draws);
             mins = self.travel(crew, target);
             score = bits;
             if self.cost_aware { score = bits / (mins / 60.0); }
@@ -47,35 +46,6 @@ walker ScoreProbes {
         }
         out.sort(reverse=True);   # [score, name, bits, mins] — score leads
         self.ranked = out;
-    }
-
-    def mixture_entropy(mu: list, probs: list) -> float {
-        """Differential entropy of the predictive Gaussian mixture, by Monte Carlo.""";
-        s = sigma();
-        total = 0.0;
-        i = 0;
-        while i < self.draws {
-            k = self.sample_index(probs);
-            y = mu[k] + random.gauss(0.0, s);
-            dens = 0.0;
-            for (m, w) in zip(mu, probs) {
-                dens += w * math.exp(-0.5 * ((y - m) / s) ** 2);
-            }
-            if dens < 1e-300 { dens = 1e-300; }
-            total += -math.log2(dens);
-            i += 1;
-        }
-        return total / self.draws;
-    }
-
-    def sample_index(probs: list) -> int {
-        r = random.random();
-        acc = 0.0;
-        for (i, p) in enumerate(probs) {
-            acc += p;
-            if r <= acc { return i; }
-        }
-        return len(probs) - 1;
     }
 
     def travel(a: Junction, b: Junction) -> float {
@@ -86,68 +56,6 @@ walker ScoreProbes {
     }
 }
 
-walker TakeProbe {
-    """Applies one field measurement and updates belief on every hypothesis node."""
-    has location: str;
-    has reading: float;
-    has survivors: int = 0;
-    has entropy_bits: float = 0.0;
-    has top: str = "";
-    has top_prob: float = 0.0;
-
-    can apply with entry {
-        col = NODES.index(self.location);
-        hyps = of_type([-->], Hypothesis);
-        total = 0.0;
-        for h in hyps {
-            like = math.exp(-0.5 * ((self.reading - h.signature[col]) / sigma()) ** 2);
-            h.prob = h.prob * like;
-            total += h.prob;
-        }
-        if total <= 1e-300 {
-            # Every hypothesis contradicted. Fall back to the prior rather than
-            # invent a winner out of floating-point noise.
-            for h in hyps { h.prob = 1.0 / len(hyps); }
-        } else {
-            for h in hyps { h.prob = h.prob / total; }
-        }
-
-        for j in of_type([-->], Junction) {
-            if j.name == self.location {
-                j.measured = True;
-                j.reading_psi = self.reading;
-            }
-        }
-
-        ent = 0.0;
-        best = 0.0;
-        for h in hyps {
-            if h.prob > 0.0 { ent += -h.prob * math.log2(h.prob); }
-            if h.prob > best { best = h.prob; self.top = h.location; }
-        }
-        self.entropy_bits = ent;
-        self.top_prob = best;
-        self.survivors = len(credible_set(hyps, 0.90));
-    }
-}
-
-
-def credible_set(hyps: list, mass: float) -> list {
-    """Smallest set of hypotheses holding 'mass' of the belief.""";
-    pairs = [];
-    for h in hyps { pairs.append([h.prob, h.location]); }
-    pairs.sort(reverse=True);     # [prob, location] — prob leads
-    out = [];
-    acc = 0.0;
-    for p in pairs {
-        out.append(p[1]);
-        acc += p[0];
-        if acc >= mass { break; }
-    }
-    return out;
-}
-
-# ------------------------------------------------------------- identifiability
 walker CheckIdentifiability {
     """Reports what pressure measurement cannot resolve, and the sensor move that would.
 

@@ -4,7 +4,7 @@ Every number printed is computed during this run, and the same numbers are writt
 web/trace.json so the map renders measured state rather than a scripted sequence.
 """
 
-include diagnose;
+include graphops;
 import json;
 
 
