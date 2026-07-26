@@ -717,7 +717,7 @@
   "critical_min_psi": 30.0,
   "service_min_psi": 20.0,
   "sims": 36,
-  "sim_seconds": 0.2124919891357422,
+  "sim_seconds": 0.24968886375427246,
   "demand_lps": 20.364253593992
  },
  "identifiability": {
@@ -871,6 +871,36 @@
    "agree": false,
    "backup": true,
    "chosen": false
+  }
+ ],
+ "measured": [
+  {
+   "net": "Net2  35 junctions,  20.4 L/s",
+   "junctions": 35,
+   "incidents": 35,
+   "fused": 24,
+   "pairs": 66,
+   "info_top1": 8.571428571428571,
+   "rand_top1": 8.571428571428571,
+   "info_top5": 37.142857142857146,
+   "rand_top5": 28.571428571428573,
+   "info_hops": 4.485714285714286,
+   "rand_hops": 5.142857142857143,
+   "lift": 12.777777777777787
+  },
+  {
+   "net": "Net3  92 junctions, 192.6 L/s",
+   "junctions": 92,
+   "incidents": 92,
+   "fused": 8,
+   "pairs": 66,
+   "info_top1": 19.565217391304348,
+   "rand_top1": 5.434782608695652,
+   "info_top5": 46.73913043478261,
+   "rand_top5": 22.82608695652174,
+   "info_hops": 3.9782608695652173,
+   "rand_hops": 6.271739130434782,
+   "lift": 36.56845753899481
   }
  ]
 }

@@ -177,6 +177,11 @@ with entry {
             "agree": c["agree"], "backup": c["backup"],
             "chosen": c["name"] == srch.best["name"]});
     }
+    # fold in the measured scale results so the board can show a scoreboard that
+    # argues for the method rather than a table of uniform placeholders
+    try {
+        with open("web/measured.json") as mf { trace["measured"] = json.load(mf); }
+    } except Exception as e { trace["measured"] = []; }
     with open("web/trace.json", "w") as f { json.dump(trace, f, indent=1); }
     # also as a plain script so the map opens over file:// with no server and no CORS
     with open("web/trace.js", "w") as f {

@@ -12,6 +12,8 @@ network structure rather than being broken; if it does not, we say so.
 
 include harness;
 
+import json;
+
 
 glob NETS: list = [
     ["data/net2.inp", 0.002, "Net2  35 junctions,  20.4 L/s"],
@@ -20,6 +22,7 @@ glob NETS: list = [
 
 
 with entry {
+    results = [];
     for cfg in NETS {
         CONFIG["inp"] = cfg[0];
         CONFIG["leak_c"] = cfg[1];
@@ -67,5 +70,12 @@ with entry {
         print(f"  top-1   info {100.0*i1/k:5.1f}%   random {100.0*r1/k:5.1f}%");
         print(f"  top-5   info {100.0*i5/k:5.1f}%   random {100.0*r5/k:5.1f}%");
         print(f"  hops    info {ih/k:5.2f}    random {rh/k:5.2f}    lift {lift:+.0f}%");
+        results.append({"net": cfg[2], "junctions": len(NODES), "incidents": k,
+                        "fused": fused, "pairs": pairs,
+                        "info_top1": 100.0*i1/k, "rand_top1": 100.0*r1/k,
+                        "info_top5": 100.0*i5/k, "rand_top5": 100.0*r5/k,
+                        "info_hops": ih/k, "rand_hops": rh/k, "lift": lift});
     }
+    with open("web/measured.json", "w") as f { json.dump(results, f, indent=1); }
+    print(f"\n[export] web/measured.json written");
 }
