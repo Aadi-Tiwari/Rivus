@@ -371,10 +371,8 @@ glob BOARD_HTML: str = """<!doctype html>
     #page{padding:0 16px}
   }
 
-  @media (prefers-reduced-motion:no-preference){
-    .flow{animation:flow linear infinite}
-    @keyframes flow{to{stroke-dashoffset:-200}}
-  }
+  .flow{animation:flow linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-200}}
 </style>
 </head>
 <body>
@@ -684,11 +682,20 @@ glob DASHBOARD_HTML: str = """<!doctype html>
   body{background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:13px;
        -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
 
-  /* Two atmosphere layers the panels refract, neither carrying data: the halftone
-     swell the landing page uses, and the particle field over it. */
-  #swell{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55}
-  #field{position:fixed;inset:0;pointer-events:none;z-index:1}
-  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.10);pointer-events:none;z-index:2}
+  /* Atmosphere layers the panels refract, none of them carrying data: the ambient
+     orbs, the halftone swell the landing page uses, and the particle field over it. */
+  /* Orbs and grain are the echoes project's background, structure kept as it was
+     there, two ellipses and a fractal-noise overlay, with its gold swapped for the
+     water blue this system already uses. */
+  #orbs{position:fixed;inset:0;pointer-events:none;z-index:0;
+        background:
+          radial-gradient(ellipse 70% 40% at 50% 0%, rgba(62,127,184,.40) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 30% at 100% 100%, rgba(62,127,184,.28) 0%, transparent 50%)}
+  #swell{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.55}
+  #field{position:fixed;inset:0;pointer-events:none;z-index:2}
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.10);pointer-events:none;z-index:3}
+  #grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.35;
+         background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E")}
 
   #page{position:relative;z-index:3;height:100svh;display:flex;flex-direction:column;
         gap:12px;padding:16px}
@@ -849,18 +856,22 @@ glob DASHBOARD_HTML: str = """<!doctype html>
   /* The ambient layers keep moving even when the system asks for less motion: they
      are the page's weather, they encode nothing, and the site they replace ran them
      unconditionally. The data-carrying motion below does respect the setting. */
+  /* Only the ripple stays gated: it pulses, and that is the motion a reduced-motion
+     preference is actually about. The dashes drift linearly and the belief update is
+     a 220ms fade, so both keep running. */
   @media (prefers-reduced-motion: reduce){
-    .flow,.ripple{animation:none !important}
-    #plot circle{transition:none !important}
+    .ripple{animation:none !important}
   }
   @keyframes flow{to{stroke-dashoffset:-16}}
   @keyframes ripple{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
 </style>
 </head>
 <body>
+<div id="orbs"></div>
 <canvas id="swell"></canvas>
 <canvas id="field"></canvas>
 <div id="scrim"></div>
+<div id="grain"></div>
 
 <div id="page">
   <header class="panel bar">

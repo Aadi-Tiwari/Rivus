@@ -103,3 +103,18 @@ def snapshot(inp_path: str, leak_node: any = None, leak_c: float = 0.0,
     for j in wn.junction_name_list { out[j] = float(row[j]); }
     return out;
 }
+
+def flows(inp_path: str) -> dict {
+    """Steady-state pipe flow magnitudes in gpm, keyed by pipe id.
+
+    The board animates each pipe at a rate set by how much water it carries, so the
+    figure needs real flows rather than a constant. EPANET reports them in m3/s.
+    """;
+    wn = wntr.network.WaterNetworkModel(inp_path);
+    wn.options.time.duration = 0;
+    result = wntr.sim.EpanetSimulator(wn).run_sim();
+    row = result.link["flowrate"].iloc[0];
+    out = {};
+    for p in wn.pipe_name_list { out[p] = abs(float(row[p])) * 15850.323; }
+    return out;
+}

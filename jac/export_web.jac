@@ -11,7 +11,7 @@ page renders measured state and the FIXTURE badge can come off honestly.
 include harness;
 
 import json;
-import from hydraulics { topology }
+import from hydraulics { topology, flows }
 
 
 glob ARMS: list = [
@@ -112,8 +112,12 @@ with entry {
         if s.name in topo["sources"] and c[1] > 0.0 { kind = "tank"; }
         net["sources"].append({"id": s.name, "x": c[1], "y": -c[0], "kind": kind});
     }
+    # Measured flow, not a placeholder: the board sets each pipe's dash speed from it,
+    # so a main has to read faster than a branch.
+    rate = flows(inp());
     for p in topo["pipes"] {
-        net["pipes"].append({"id": p[0], "from": p[1], "to": p[2], "flow": 10});
+        net["pipes"].append({"id": p[0], "from": p[1], "to": p[2],
+                             "flow": round(rate.get(p[0], 0.0), 2)});
     }
 
     # one incident, fully traced across all four arms
@@ -143,27 +147,43 @@ with entry {
     try {
         with open("web/measured.json") as mf { meas = json.load(mf); }
     } except Exception as e { meas = []; }
+    # Two networks were swept. Keep them apart: the headline numbers have to describe the
+    # network that is actually drawn, or the panel reads as one experiment when it is two.
+    n2 = {};
     n3 = {};
-    for m in meas { if m["junctions"] > 50 { n3 = m; } }
+    for m in meas {
+        if m["junctions"] == len(NODES) { n2 = m; }
+        if m["junctions"] > 50 { n3 = m; }
+    }
 
-    sm = {"nIncidents": 105, "chancePct": round(100.0 / len(NODES), 1),
+    sm = {"nIncidents": 0, "chancePct": round(100.0 / len(NODES), 1),
           "noisePsi": GAUGE_NOISE, "arms": []};
-    if len(n3) > 0 {
+    if len(n2) > 0 {
+        # The arms quote this network. Quoting the 92-junction sweep beside a 35-junction
+        # map and a 1-in-35 chance line put three different experiments in the same row,
+        # and the incident count was hardcoded to 105, which matched neither sweep.
+        sm["nIncidents"] = n2["incidents"];
         sm["arms"].append({"name": "random control", "key": "randomControl",
-            "exactPct": round(n3["rand_top1"], 1), "top5Pct": round(n3["rand_top5"], 1),
-            "meanHops": round(n3["rand_hops"], 2), "meanProbes": 3});
+            "exactPct": round(n2["rand_top1"], 1), "top5Pct": round(n2["rand_top5"], 1),
+            "meanHops": round(n2["rand_hops"], 2), "meanProbes": 3});
         sm["arms"].append({"name": "max information gain", "key": "maxInfoGain",
-            "exactPct": round(n3["info_top1"], 1), "top5Pct": round(n3["info_top5"], 1),
-            "meanHops": round(n3["info_hops"], 2), "meanProbes": 3});
-        # Only the two arms actually measured on the 92-junction sweep go in the summary.
-        # Adaptive stopping and all-gauges are replayable above because their per-step
-        # traces are real, but they were not run across the sweep, so quoting a headline
-        # accuracy for them would be inventing a number.
+            "exactPct": round(n2["info_top1"], 1), "top5Pct": round(n2["info_top5"], 1),
+            "meanHops": round(n2["info_hops"], 2), "meanProbes": 3});
+        # Only the two arms actually measured in the sweep go in the summary. Adaptive
+        # stopping and all-gauges are replayable above because their per-step traces are
+        # real, but they were not swept, so a headline accuracy would be an invented number.
         sm["winner"] = "maxInfoGain";
-        sm["note"] = f"Measured on a {n3['junctions']}-junction district, 105 incidents "
-                     f"per arm. Information gain finds the exact junction "
-                     f"{n3['info_top1']:.1f}% of the time against {n3['rand_top1']:.1f}% "
-                     f"by chance, and lands {n3['lift']:.0f}% closer (p<0.01).";
+        note = f"This network: {n2['junctions']} junctions, {n2['incidents']} incidents "
+               f"per arm. Information gain lifts top-5 from {n2['rand_top5']:.1f}% to "
+               f"{n2['info_top5']:.1f}% and ties the control on exact-junction accuracy "
+               f"at {n2['info_top1']:.1f}%.";
+        if len(n3) > 0 {
+            note = note + f" On the larger {n3['junctions']}-junction district, "
+                          f"{n3['incidents']} incidents per arm, it finds the exact junction "
+                          f"{n3['info_top1']:.1f}% of the time against "
+                          f"{n3['rand_top1']:.1f}% and lands {n3['lift']:.0f}% closer.";
+        }
+        sm["note"] = note;
     }
 
     out = {"fixture": False, "network": net, "incidents": inc, "summary": sm};
