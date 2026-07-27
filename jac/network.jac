@@ -11,7 +11,7 @@ Python appears once, at the EPANET boundary, because EPANET is a C library.
 
 import math;
 import random;
-import from py.hydraulics { topology, snapshot }
+import from hydraulics { topology, snapshot }
 
 # --------------------------------------------------------------------- scenario
 glob INP: str = "data/net2.inp";

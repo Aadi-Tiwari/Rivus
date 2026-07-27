@@ -6,7 +6,7 @@ Demo frontend for Rivus, Bayesian leak localisation over water distribution netw
 
 ```bash
 pnpm install
-node scripts/make-fixture.mjs   # regenerates public/replay.json from ../temp.inp
+cd .. && jac run jac/export_web.jac && cd web   # regenerates public/replay.json
 pnpm dev
 ```
 
@@ -16,12 +16,11 @@ The page is a **pure replay player**. There is no backend and no live call into 
 Jac evaluation. Everything on screen is read from `public/replay.json`, so the demo
 is deterministic on stage and can be built on any machine.
 
-`scripts/make-fixture.mjs` parses the real EPANET network at `../temp.inp` and emits
-that file. It asserts 22 junctions, 3 sources and 43 pipes, and fails loudly if the
-parse drifts. The posteriors it generates are **synthetic**, which is why the page
-shows a `FIXTURE DATA` badge, driven by the `fixture: true` flag at the root of the
-JSON. Replacing the file with real evaluation output requires no code change and
-removes the badge.
+`jac/export_web.jac` runs the Jac engine over the real EPANET network and emits that
+file, so the posteriors are measured rather than synthetic. The page shows a
+`FIXTURE DATA` badge whenever the root `fixture` flag is true, which is how a
+placeholder run announces itself. The measured export sets it false and the badge
+disappears with no code change.
 
 ## What this UI deliberately does not claim
 
