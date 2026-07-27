@@ -5,7 +5,7 @@ and a summary table where random probing beat the method. All three were artifac
 the fixture, not results. This runs the actual engine and writes the same schema, so the
 page renders measured state and the FIXTURE badge can come off honestly.
 
-    jac run jac/export_web.jac      ->  web/public/replay.json
+    jac run jac/export_web.jac      ->  web/replay.json + web/replay.js
 """
 
 include harness;
@@ -167,8 +167,12 @@ with entry {
     }
 
     out = {"fixture": False, "network": net, "incidents": inc, "summary": sm};
-    with open("web/public/replay.json", "w") as f { json.dump(out, f); }
-    print(f"\n[export] web/public/replay.json — {len(net['junctions'])} junctions, "
+    with open("web/replay.json", "w") as f { json.dump(out, f); }
+    # also as a plain script, so dashboard.html opens over file:// with no server
+    with open("web/replay.js", "w") as f {
+        f.write("window.REPLAY = " + json.dumps(out) + ";");
+    }
+    print(f"\n[export] web/replay.json — {len(net['junctions'])} junctions, "
           f"{len(net['pipes'])} pipes, {len(net['sources'])} sources, "
           f"{len(arms)} arms, fixture=False");
 }

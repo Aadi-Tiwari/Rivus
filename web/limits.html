@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivus - Sheet 03 / Limits</title>
+<style>
+  :root{
+    --ground:#00070F; --ink:#E8F4F8; --ink2:rgba(255,255,255,.60);
+    --ink3:rgba(255,255,255,.35); --rule:rgba(255,255,255,.14);
+    --belief:#2DD4BF; --critical:#FF7A8A; --foam:#BFE9FF;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ground);color:var(--ink);font-family:var(--mono);
+       font-size:13px;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+  a{color:inherit}
+  .wrap{max-width:1000px;margin:0 auto;padding:140px 24px 112px}
+  .top{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+       padding:22px 32px;background:linear-gradient(#00070F,rgba(0,7,15,0));z-index:5}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px;background:var(--belief)}
+  .glyph i:nth-child(1){left:0;top:10px}
+  .glyph i:nth-child(2){left:5px;top:5px;opacity:.75}
+  .glyph i:nth-child(3){left:10px;top:0;opacity:.5}
+  .brand{font-size:15px;text-decoration:none}
+  .nav{margin-left:auto;display:flex;gap:24px;font-size:10px;text-transform:uppercase;
+       letter-spacing:.12em;color:var(--ink3)}
+  .nav a{text-decoration:none}
+  .nav a:hover,.nav a.on{color:var(--belief)}
+  .mast{display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .sheet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--belief);padding-top:12px}
+  h1{font-family:var(--disp);font-weight:400;font-size:clamp(2.6rem,5vw,4rem);
+     line-height:.95;letter-spacing:-.02em}
+  h1 i{font-style:italic}
+  .lede{font-size:13px;color:rgba(255,255,255,.55);line-height:1.75;margin-top:28px;max-width:54ch}
+  .meta{margin-top:40px;padding-top:12px;border-top:1px solid var(--rule);
+        display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .meta dl{display:flex;flex-wrap:wrap;gap:6px 32px;font-size:10px;text-transform:uppercase;
+           letter-spacing:.14em;color:var(--ink3)}
+  .notes{margin-top:56px}
+  .note{display:grid;grid-template-columns:100px 1fr;gap:0 32px;padding:36px 0;
+        border-top:1px solid rgba(255,255,255,.09)}
+  .note:first-child{border-top:0;padding-top:0}
+  .mark{text-align:right;padding-top:6px}
+  .mark b{display:block;font-weight:400;font-size:15px;color:var(--belief);line-height:1}
+  .mark s{display:block;text-decoration:none;font-size:9px;text-transform:uppercase;
+          letter-spacing:.16em;color:var(--ink3);margin-top:6px;line-height:1.3}
+  h2{font-family:var(--disp);font-weight:400;font-size:1.6rem;line-height:1.2;margin-bottom:16px}
+  .body>*+*{margin-top:16px}
+  .body p{font-size:13px;line-height:1.8;color:var(--ink2);max-width:62ch}
+  .call{border-left:2px solid var(--belief);padding:4px 0 4px 20px;font-size:13px;
+        line-height:1.8;color:rgba(255,255,255,.80)}
+  .call.warn{border-color:var(--critical);color:rgba(255,122,138,.85)}
+  .expr{font-size:13px;color:var(--foam);background:rgba(255,255,255,.03);
+        border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
+        padding:14px 20px}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:440px}
+  th{font-weight:400;font-size:9px;text-transform:uppercase;letter-spacing:.16em;
+     color:var(--ink3);padding:0 0 8px 12px;text-align:right}
+  th:first-child{text-align:left}
+  td{padding:10px 0 10px 12px;text-align:right;color:rgba(255,255,255,.65);
+     border-top:1px solid rgba(255,255,255,.08)}
+  td:first-child{text-align:left}
+  tr.on td{color:var(--belief)}
+  figcaption{font-size:11px;line-height:1.6;color:var(--ink3);margin-top:12px;padding-top:12px;
+             border-top:1px solid rgba(255,255,255,.08)}
+  .end{margin-top:80px;padding-top:20px;border-top:1px solid var(--rule);
+       display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .end .k{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(255,255,255,.25)}
+  .end .links{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:12px}
+  .end .links a{text-decoration:none;color:var(--ink3)}
+  .end .links a:hover{color:rgba(255,255,255,.8)}
+  .end .links a.live{color:var(--belief);border-bottom:1px solid rgba(45,212,191,.4);padding-bottom:2px}
+  @media (max-width:760px){
+    .mast,.meta,.note,.end{grid-template-columns:1fr}
+    .mark{text-align:left;padding-bottom:14px}
+  }
+</style>
+</head>
+<body>
+<div class="top"><span class="glyph"><i></i><i></i><i></i></span><a class="brand" href="index.html">Rivus</a><nav class="nav"><a href="method.html">Method</a><a href="results.html">Results</a><a href="limits.html" class="on">Limits</a><a href="dashboard.html">Live board</a></nav></div>
+<div class="wrap">
+<div class="mast"><div class="sheet">Sheet 03 / Limits</div><div><h1>What Rivus<br><i>cannot</i> tell you</h1><p class="lede">The failure modes are known and written down. If a claim is not on the results sheet, we are not making it.</p></div></div>
+<div class="meta"><div></div><dl><dd>one network</dd><dd>arbitrary gauge set</dd><dd>synthetic demo data</dd></dl></div>
+<div class="notes"><section class="note"><div class="mark"><b>1 / 22</b><s>exact-junction rate</s></div><div><h2>It does not find the pipe</h2><div class="body"><p class="call warn">Rivus does not identify the leaking pipe. Exact-junction accuracy sits at chance in the regime that passes the non-circularity gate, and any interface implying otherwise would contradict our own measurements.</p><p>What it does produce is a calibrated set and a cost. Those are the two things the interface is allowed to put on screen.</p></div></div></section><section class="note"><div class="mark"><b>8 ≈ 3</b><s>gauges vs random</s></div><div><h2>The forward model is probably misspecified</h2><div class="body"><p>Reading all eight gauges performs no better than reading three chosen at random. That is the signature of a misspecified forward model rather than a weak probe policy: more information is not helping, so the map from leak to pressure is not close enough to reality for the extra readings to carry signal.</p><p>Until that resolves, no policy should be expected to separate from the control on accuracy, and the roughness-CV question has to be settled first.</p></div></div></section><section class="note"><div class="mark"><b>n/3</b><s>every third junction</s></div><div><h2>Gauge placement is arbitrary</h2><div class="body"><p>The gauge set is every third junction. That is not optimised and not drawn from any real deployment. Real placement would move every number reported here, so nothing on these sheets should be read as guidance on how many gauges a network needs or where they belong.</p></div></div></section><section class="note"><div class="mark"><b>n = 1</b><s>networks tested</s></div><div><h2>One network, one topology</h2><div class="body"><p>Every result comes from a single 22-junction benchmark. Being a real published network beats a synthetic toy, but it is still one topology at one scale. Nothing here demonstrates that the behaviour holds at city scale, across different pipe-material mixes, or on networks with pumps and valves running on schedules.</p></div></div></section><section class="note"><div class="mark"><b>gpm</b><s>leak model unit</s></div><div><h2>The leak model is a simplification</h2><div class="body"><p>Leaks are injected as added demand at a junction. Real leaks occur along pipes, vary with pressure, and change over time. Emitter-based modelling sits closer to the physics but saturates badly in this solver, so we took the tractable simplification and are naming it.</p></div></div></section><section class="note"><div class="mark"><b>fixture</b><s>demo posteriors</s></div><div><h2>The demo data is synthetic</h2><div class="body"><p>On the live diagnosis screen the topology, coordinates, pipe connectivity and gauge positions are read straight from the real network file. The posteriors are synthetic, calibrated to match measured behaviour. That screen carries a Fixture badge for exactly this reason, and the badge clears itself once real evaluation output replaces the file.</p></div></div></section><section class="note"><div class="mark"><b>open</b><s>what would settle it</s></div><div><h2>What would change our minds</h2><div class="body"><p>A forward model where adding gauges improves accuracy would remove the central objection. So would reproducing the crossover on a second network with real gauge placement. Until one of those lands, the defensible claim stays narrow: a calibrated credible set, and fewer crews sent to reach it.</p></div></div></section></div>
+<div class="end"><div class="k">End</div><div class="links"><a class="live" href="dashboard.html">Open the live diagnosis</a><a href="method.html">Method</a><a href="results.html">Results</a><a href="limits.html">Limits</a></div></div>
+</div>
+</body>
+</html>

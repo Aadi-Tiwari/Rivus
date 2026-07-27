@@ -1,14 +1,24 @@
-# Artifacts written by the Jac run, not hand-authored source. pages.jac holds the
-# board markup and main.jac emits index.html, board.html and standalone.html from
-# it; main.jac also writes trace.js and trace.json, export_web.jac writes
-# replay.json, and the evaluation harness writes measured.json. They are committed
-# so the board opens straight from a clone, but they are output and are excluded
-# from the repository's language statistics.
-web/index.html        linguist-generated=true
-web/board.html        linguist-generated=true
-web/standalone.html   linguist-generated=true
-web/trace.js          linguist-generated=true
-web/trace.json        linguist-generated=true
-web/measured.json     linguist-generated=true
-web/public/replay.json linguist-generated=true
+# Everything under web/ is output, not source. The pages and their data are written
+# by the Jac run and committed so the board opens straight from a clone:
+#
+#   pages.jac       holds index.html, board.html and dashboard.html and writes them
+#   docs.jac        holds the written sheets and writes method/results/limits.html
+#   main.jac        inlines the trace into standalone.html, writes trace.js/trace.json
+#   export_web.jac  writes replay.json and replay.js
+#   the harness     writes measured.json
+#
+# They are excluded from the repository's language statistics because their source
+# lives in jac/.
+web/index.html          linguist-generated=true
+web/board.html          linguist-generated=true
+web/dashboard.html      linguist-generated=true
+web/standalone.html     linguist-generated=true
+web/method.html         linguist-generated=true
+web/results.html        linguist-generated=true
+web/limits.html         linguist-generated=true
+web/trace.js            linguist-generated=true
+web/trace.json          linguist-generated=true
+web/replay.js           linguist-generated=true
+web/replay.json         linguist-generated=true
+web/measured.json       linguist-generated=true
 web/generated/docs.json linguist-generated=true

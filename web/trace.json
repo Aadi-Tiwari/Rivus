@@ -717,7 +717,7 @@
   "critical_min_psi": 30.0,
   "service_min_psi": 20.0,
   "sims": 36,
-  "sim_seconds": 0.9908773899078369,
+  "sim_seconds": 0.9630284309387207,
   "demand_lps": 20.364253593991993
  },
  "identifiability": {

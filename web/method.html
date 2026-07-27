@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivus - Sheet 01 / Method</title>
+<style>
+  :root{
+    --ground:#00070F; --ink:#E8F4F8; --ink2:rgba(255,255,255,.60);
+    --ink3:rgba(255,255,255,.35); --rule:rgba(255,255,255,.14);
+    --belief:#2DD4BF; --critical:#FF7A8A; --foam:#BFE9FF;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ground);color:var(--ink);font-family:var(--mono);
+       font-size:13px;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+  a{color:inherit}
+  .wrap{max-width:1000px;margin:0 auto;padding:140px 24px 112px}
+  .top{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+       padding:22px 32px;background:linear-gradient(#00070F,rgba(0,7,15,0));z-index:5}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px;background:var(--belief)}
+  .glyph i:nth-child(1){left:0;top:10px}
+  .glyph i:nth-child(2){left:5px;top:5px;opacity:.75}
+  .glyph i:nth-child(3){left:10px;top:0;opacity:.5}
+  .brand{font-size:15px;text-decoration:none}
+  .nav{margin-left:auto;display:flex;gap:24px;font-size:10px;text-transform:uppercase;
+       letter-spacing:.12em;color:var(--ink3)}
+  .nav a{text-decoration:none}
+  .nav a:hover,.nav a.on{color:var(--belief)}
+  .mast{display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .sheet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--belief);padding-top:12px}
+  h1{font-family:var(--disp);font-weight:400;font-size:clamp(2.6rem,5vw,4rem);
+     line-height:.95;letter-spacing:-.02em}
+  h1 i{font-style:italic}
+  .lede{font-size:13px;color:rgba(255,255,255,.55);line-height:1.75;margin-top:28px;max-width:54ch}
+  .meta{margin-top:40px;padding-top:12px;border-top:1px solid var(--rule);
+        display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .meta dl{display:flex;flex-wrap:wrap;gap:6px 32px;font-size:10px;text-transform:uppercase;
+           letter-spacing:.14em;color:var(--ink3)}
+  .notes{margin-top:56px}
+  .note{display:grid;grid-template-columns:100px 1fr;gap:0 32px;padding:36px 0;
+        border-top:1px solid rgba(255,255,255,.09)}
+  .note:first-child{border-top:0;padding-top:0}
+  .mark{text-align:right;padding-top:6px}
+  .mark b{display:block;font-weight:400;font-size:15px;color:var(--belief);line-height:1}
+  .mark s{display:block;text-decoration:none;font-size:9px;text-transform:uppercase;
+          letter-spacing:.16em;color:var(--ink3);margin-top:6px;line-height:1.3}
+  h2{font-family:var(--disp);font-weight:400;font-size:1.6rem;line-height:1.2;margin-bottom:16px}
+  .body>*+*{margin-top:16px}
+  .body p{font-size:13px;line-height:1.8;color:var(--ink2);max-width:62ch}
+  .call{border-left:2px solid var(--belief);padding:4px 0 4px 20px;font-size:13px;
+        line-height:1.8;color:rgba(255,255,255,.80)}
+  .call.warn{border-color:var(--critical);color:rgba(255,122,138,.85)}
+  .expr{font-size:13px;color:var(--foam);background:rgba(255,255,255,.03);
+        border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
+        padding:14px 20px}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:440px}
+  th{font-weight:400;font-size:9px;text-transform:uppercase;letter-spacing:.16em;
+     color:var(--ink3);padding:0 0 8px 12px;text-align:right}
+  th:first-child{text-align:left}
+  td{padding:10px 0 10px 12px;text-align:right;color:rgba(255,255,255,.65);
+     border-top:1px solid rgba(255,255,255,.08)}
+  td:first-child{text-align:left}
+  tr.on td{color:var(--belief)}
+  figcaption{font-size:11px;line-height:1.6;color:var(--ink3);margin-top:12px;padding-top:12px;
+             border-top:1px solid rgba(255,255,255,.08)}
+  .end{margin-top:80px;padding-top:20px;border-top:1px solid var(--rule);
+       display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .end .k{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(255,255,255,.25)}
+  .end .links{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:12px}
+  .end .links a{text-decoration:none;color:var(--ink3)}
+  .end .links a:hover{color:rgba(255,255,255,.8)}
+  .end .links a.live{color:var(--belief);border-bottom:1px solid rgba(45,212,191,.4);padding-bottom:2px}
+  @media (max-width:760px){
+    .mast,.meta,.note,.end{grid-template-columns:1fr}
+    .mark{text-align:left;padding-bottom:14px}
+  }
+</style>
+</head>
+<body>
+<div class="top"><span class="glyph"><i></i><i></i><i></i></span><a class="brand" href="index.html">Rivus</a><nav class="nav"><a href="method.html" class="on">Method</a><a href="results.html">Results</a><a href="limits.html">Limits</a><a href="dashboard.html">Live board</a></nav></div>
+<div class="wrap">
+<div class="mast"><div class="sheet">Sheet 01 / Method</div><div><h1>How Rivus<br><i>narrows</i> a leak</h1><p class="lede">A hydraulic forward model, a likelihood that admits its own error, and a probe policy that stops once the next crew is no longer worth sending.</p></div></div>
+<div class="meta"><div></div><dl><dd>Anytown multipointcurves</dd><dd>22 junctions</dd><dd>8 gauges</dd><dd>leak 400 gpm</dd></dl></div>
+<div class="notes"><section class="note"><div class="mark"><b>43</b><s>pipes solved</s></div><div><h2>The forward model</h2><div class="body"><p>EPANET solves pressures at every junction for a candidate leak. The network is Anytown_multipointcurves, a published benchmark bundled with wntr. Of the 33 bundled networks only 8 produce physically valid hydraulics, and plain Anytown.inp diverges to 1e25.</p><p>Leaks enter as added demand in GPM, not as emitters. Emitter leaks saturate: 0.5 and 30.0 produced identical 30 psi drops and drove junctions negative. Added demand stays linear and controllable.</p></div></div></section><section class="note"><div class="mark"><b>1.34</b><s>psi combined σ</s></div><div><h2>Why gauge noise alone is not the likelihood</h2><div class="body"><p>The obvious likelihood compares predicted against observed pressure using the 0.35 psi sensor noise. Applied to perturbed data it reported entropy 0.000 while being wrong 95% of the time.</p><p class="call warn">Certainty and error at once is the worst available failure for a product whose whole claim is that it reports what it cannot know.</p><p>Sensor error and forward-model error add in quadrature, so the likelihood widens to admit how wrong the simulator is:</p><p class="expr">σ = √(0.35² + model_σ²)  ·  model_σ = 1.30 from measured divergence</p><p>Sigma moves calibration, not ranking. Swept from 0.01 to 5.0, exact holds at 4.5% and top-5 at 30.3% while mean entropy travels 0.0 to 4.342 bits. Honest uncertainty costs nothing, so there is no accuracy argument for staying overconfident.</p></div></div></section><section class="note"><div class="mark"><b>0.226</b><s>max bits per gauge</s></div><div><h2>Choosing the next gauge</h2><div class="body"><p>Each candidate probe is scored by the bits the posterior is expected to lose once that gauge is read. Information gain only survives an honest sigma:</p><figure><div style="overflow-x:auto"><table><thead><tr><th>model σ</th><th>EIG range across 8 gauges</th></tr></thead><tbody><tr><td>0.5</td><td>0.006 – 0.627 bits</td></tr><tr class="on"><td>1.3</td><td>0.000 – 0.226 bits</td></tr><tr><td>2.5</td><td>0.000 – 0.040 bits</td></tr></tbody></table></div><figcaption>At σ 2.5 no gauge carries information and max-infogain collapses into random. Sigma comes from measured divergence, never chosen defensively.</figcaption></figure></div></div></section><section class="note"><div class="mark"><b>2</b><s>probes at θ 0.50</s></div><div><h2>Knowing when to stop</h2><div class="body"><p>Every probe is a crew dispatched to a street, so the policy halts once the next probe buys fewer than θ bits, or the budget runs out. Replaying a decaying information sequence:</p><figure><div style="overflow-x:auto"><table><thead><tr><th>threshold θ</th><th>probes</th><th>bits gained</th></tr></thead><tbody><tr class="on"><td>0.50</td><td>2</td><td>1.81</td></tr><tr><td>0.15</td><td>3</td><td>1.99</td></tr><tr><td>0.05</td><td>3</td><td>1.99</td></tr><tr><td>0.00</td><td>5</td><td>2.04</td></tr><tr><td>fixed-3 arm</td><td>3</td><td>1.99</td></tr></tbody></table></div><figcaption>At θ 0.50 the policy keeps 91% of the information for two thirds of the probes.</figcaption></figure><p>This arm will not beat fixed-3 on accuracy and is not meant to. Its win is equal accuracy at lower cost, which is why probes spent is a first-class column everywhere in this product rather than a footnote.</p></div></div></section><section class="note"><div class="mark"><b>0.35</b><s>psi noise floor</s></div><div><h2>Proving it is not circular</h2><div class="body"><p>If diagnosis merely inverts the simulator that produced the evidence, the result means nothing. The defence is that staging perturbs demands and roughness before observations are drawn, and that defence is only real if perturbed and nominal baselines diverge by more than the noise floor.</p><p>So the gate measures per-gauge divergence between the two models and requires the median to clear 0.35 psi. It runs across the same seeds the evaluation uses and gates on the worst seed, not the mean, because a check that cannot fail is not a check.</p></div></div></section></div>
+<div class="end"><div class="k">End</div><div class="links"><a class="live" href="dashboard.html">Open the live diagnosis</a><a href="method.html">Method</a><a href="results.html">Results</a><a href="limits.html">Limits</a></div></div>
+</div>
+</body>
+</html>

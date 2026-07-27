@@ -6,7 +6,8 @@ web/trace.json so the map renders measured state rather than a scripted sequence
 
 include graphops;
 import json;
-import from pages { INDEX_HTML, BOARD_HTML, write_page }
+import from pages { INDEX_HTML, BOARD_HTML, DASHBOARD_HTML, write_page }
+import from docs { emit as emit_docs, emit_sheets }
 
 
 def reconcile(c: dict) -> str {
@@ -192,6 +193,9 @@ with entry {
     # this run wrote and never a stale file on disk
     write_page("web/index.html", INDEX_HTML);
     write_page("web/board.html", BOARD_HTML);
+    write_page("web/dashboard.html", DASHBOARD_HTML);
+    emit_docs("web/generated/docs.json");
+    emit_sheets("web");
     # and a single hostable file with the trace inlined, for deployment
     page = BOARD_HTML.replace('<script src="trace.js"></script>',
                         "<script>window.TRACE = " + json.dumps(trace) + ";</script>");

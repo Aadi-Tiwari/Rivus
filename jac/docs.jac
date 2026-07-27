@@ -210,7 +210,193 @@ def emit(path: str) -> int {
 }
 
 
+
+glob SHEET_CSS: str = """
+  :root{
+    --ground:#00070F; --ink:#E8F4F8; --ink2:rgba(255,255,255,.60);
+    --ink3:rgba(255,255,255,.35); --rule:rgba(255,255,255,.14);
+    --belief:#2DD4BF; --critical:#FF7A8A; --foam:#BFE9FF;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ground);color:var(--ink);font-family:var(--mono);
+       font-size:13px;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+  a{color:inherit}
+  .wrap{max-width:1000px;margin:0 auto;padding:140px 24px 112px}
+  .top{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+       padding:22px 32px;background:linear-gradient(#00070F,rgba(0,7,15,0));z-index:5}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px;background:var(--belief)}
+  .glyph i:nth-child(1){left:0;top:10px}
+  .glyph i:nth-child(2){left:5px;top:5px;opacity:.75}
+  .glyph i:nth-child(3){left:10px;top:0;opacity:.5}
+  .brand{font-size:15px;text-decoration:none}
+  .nav{margin-left:auto;display:flex;gap:24px;font-size:10px;text-transform:uppercase;
+       letter-spacing:.12em;color:var(--ink3)}
+  .nav a{text-decoration:none}
+  .nav a:hover,.nav a.on{color:var(--belief)}
+  .mast{display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .sheet{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--belief);padding-top:12px}
+  h1{font-family:var(--disp);font-weight:400;font-size:clamp(2.6rem,5vw,4rem);
+     line-height:.95;letter-spacing:-.02em}
+  h1 i{font-style:italic}
+  .lede{font-size:13px;color:rgba(255,255,255,.55);line-height:1.75;margin-top:28px;max-width:54ch}
+  .meta{margin-top:40px;padding-top:12px;border-top:1px solid var(--rule);
+        display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .meta dl{display:flex;flex-wrap:wrap;gap:6px 32px;font-size:10px;text-transform:uppercase;
+           letter-spacing:.14em;color:var(--ink3)}
+  .notes{margin-top:56px}
+  .note{display:grid;grid-template-columns:100px 1fr;gap:0 32px;padding:36px 0;
+        border-top:1px solid rgba(255,255,255,.09)}
+  .note:first-child{border-top:0;padding-top:0}
+  .mark{text-align:right;padding-top:6px}
+  .mark b{display:block;font-weight:400;font-size:15px;color:var(--belief);line-height:1}
+  .mark s{display:block;text-decoration:none;font-size:9px;text-transform:uppercase;
+          letter-spacing:.16em;color:var(--ink3);margin-top:6px;line-height:1.3}
+  h2{font-family:var(--disp);font-weight:400;font-size:1.6rem;line-height:1.2;margin-bottom:16px}
+  .body>*+*{margin-top:16px}
+  .body p{font-size:13px;line-height:1.8;color:var(--ink2);max-width:62ch}
+  .call{border-left:2px solid var(--belief);padding:4px 0 4px 20px;font-size:13px;
+        line-height:1.8;color:rgba(255,255,255,.80)}
+  .call.warn{border-color:var(--critical);color:rgba(255,122,138,.85)}
+  .expr{font-size:13px;color:var(--foam);background:rgba(255,255,255,.03);
+        border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
+        padding:14px 20px}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:440px}
+  th{font-weight:400;font-size:9px;text-transform:uppercase;letter-spacing:.16em;
+     color:var(--ink3);padding:0 0 8px 12px;text-align:right}
+  th:first-child{text-align:left}
+  td{padding:10px 0 10px 12px;text-align:right;color:rgba(255,255,255,.65);
+     border-top:1px solid rgba(255,255,255,.08)}
+  td:first-child{text-align:left}
+  tr.on td{color:var(--belief)}
+  figcaption{font-size:11px;line-height:1.6;color:var(--ink3);margin-top:12px;padding-top:12px;
+             border-top:1px solid rgba(255,255,255,.08)}
+  .end{margin-top:80px;padding-top:20px;border-top:1px solid var(--rule);
+       display:grid;grid-template-columns:100px 1fr;gap:0 32px}
+  .end .k{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:rgba(255,255,255,.25)}
+  .end .links{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:12px}
+  .end .links a{text-decoration:none;color:var(--ink3)}
+  .end .links a:hover{color:rgba(255,255,255,.8)}
+  .end .links a.live{color:var(--belief);border-bottom:1px solid rgba(45,212,191,.4);padding-bottom:2px}
+  @media (max-width:760px){
+    .mast,.meta,.note,.end{grid-template-columns:1fr}
+    .mark{text-align:left;padding-bottom:14px}
+  }
+""";
+
+
+def esc(s: str) -> str {
+    """HTML-escape a fragment of prose.""";
+    out = s.replace("&", "&amp;");
+    out = out.replace("<", "&lt;");
+    return out.replace(">", "&gt;");
+}
+
+
+def title_html(lines: list) -> str {
+    """Asterisks mark the italic run; lines are separated by a rule break.""";
+    parts = [];
+    for line in lines {
+        chunks = line.split("*");
+        built = "";
+        i = 0;
+        for c in chunks {
+            if i % 2 == 1 { built += "<i>" + esc(c) + "</i>"; } else { built += esc(c); }
+            i += 1;
+        }
+        parts.append(built);
+    }
+    return "<br>".join(parts);
+}
+
+
+def block_html(b: dict) -> str {
+    """One block: a readout table, an expression, a callout, or a paragraph.""";
+    if "readout" in b {
+        r = b["readout"];
+        head = "";
+        for h in r["head"] { head += "<th>" + esc(h) + "</th>"; }
+        rows = "";
+        i = 0;
+        for row in r["rows"] {
+            cells = "";
+            for c in row { cells += "<td>" + esc(str(c)) + "</td>"; }
+            on = "";
+            if "mark" in r and r["mark"] == i { on = ' class="on"'; }
+            rows += "<tr" + on + ">" + cells + "</tr>";
+            i += 1;
+        }
+        cap = "";
+        if "caption" in r { cap = "<figcaption>" + esc(r["caption"]) + "</figcaption>"; }
+        return ('<figure><div style="overflow-x:auto"><table><thead><tr>' + head
+                + "</tr></thead><tbody>" + rows + "</tbody></table></div>" + cap + "</figure>");
+    }
+    if "expr" in b { return '<p class="expr">' + esc(b["expr"]) + "</p>"; }
+    if "callout" in b {
+        warn = "";
+        if b.get("tone", "") == "warn" { warn = " warn"; }
+        return '<p class="call' + warn + '">' + esc(b["callout"]) + "</p>";
+    }
+    return "<p>" + esc(b["p"]) + "</p>";
+}
+
+
+def sheet_html(key: str, doc: dict) -> str {
+    """One written sheet as a standalone page.""";
+    meta = "";
+    for m in doc["meta"] { meta += "<dd>" + esc(m) + "</dd>"; }
+
+    notes = "";
+    for n in doc["notes"] {
+        body = "";
+        for b in n["blocks"] { body += block_html(b); }
+        notes += ('<section class="note"><div class="mark"><b>' + esc(n["mark"]) + "</b><s>"
+                  + esc(n["markUnit"]) + '</s></div><div><h2>' + esc(n["heading"]) + "</h2>"
+                  + '<div class="body">' + body + "</div></div></section>");
+    }
+
+    nav = "";
+    for item in [["method", "Method"], ["results", "Results"], ["limits", "Limits"]] {
+        on = "";
+        if item[0] == key { on = ' class="on"'; }
+        nav += '<a href="' + item[0] + '.html"' + on + ">" + item[1] + "</a>";
+    }
+
+    return ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+            + '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+            + "<title>Rivus - " + esc(doc["sheet"]) + "</title>\n<style>" + SHEET_CSS
+            + '</style>\n</head>\n<body>\n<div class="top">'
+            + '<span class="glyph"><i></i><i></i><i></i></span>'
+            + '<a class="brand" href="index.html">Rivus</a>'
+            + '<nav class="nav">' + nav + '<a href="dashboard.html">Live board</a></nav></div>\n'
+            + '<div class="wrap">\n<div class="mast"><div class="sheet">' + esc(doc["sheet"])
+            + "</div><div><h1>" + title_html(doc["title"]) + "</h1>"
+            + '<p class="lede">' + esc(doc["lede"]) + "</p></div></div>\n"
+            + '<div class="meta"><div></div><dl>' + meta + "</dl></div>\n"
+            + '<div class="notes">' + notes + "</div>\n"
+            + '<div class="end"><div class="k">End</div><div class="links">'
+            + '<a class="live" href="dashboard.html">Open the live diagnosis</a>'
+            + '<a href="method.html">Method</a><a href="results.html">Results</a>'
+            + '<a href="limits.html">Limits</a></div></div>\n</div>\n</body>\n</html>\n');
+}
+
+
+def emit_sheets(folder: str) -> int {
+    """Write one page per sheet and report how many were written.""";
+    n = 0;
+    for (key, doc) in sheets().items() {
+        with open(folder + "/" + key + ".html", "w", encoding="utf-8", newline="") as f {
+            f.write(sheet_html(key, doc));
+        }
+        n += 1;
+    }
+    return n;
+}
+
 with entry:__main__ {
     n = emit("web/generated/docs.json");
-    print(f"[docs] web/generated/docs.json {n} chars, {len(sheets())} sheets");
+    k = emit_sheets("web");
+    print(f"[docs] web/generated/docs.json {n} chars, {k} sheets written to web/");
 }
