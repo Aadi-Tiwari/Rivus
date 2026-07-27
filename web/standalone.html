@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivus — District 2 leak investigation</title>
+<script>window.TRACE = {"nodes": [{"name": "1", "x": 21.0, "y": 4.0, "psi": 112.63821411132812, "critical": false}, {"name": "2", "x": 19.0, "y": 20.0, "psi": 88.9449691772461, "critical": false}, {"name": "3", "x": 11.0, "y": 21.0, "psi": 106.00950622558594, "critical": false}, {"name": "4", "x": 14.0, "y": 28.0, "psi": 105.828857421875, "critical": false}, {"name": "5", "x": 19.0, "y": 25.0, "psi": 88.47542572021484, "critical": false}, {"name": "6", "x": 28.0, "y": 23.0, "psi": 76.75917053222656, "critical": false}, {"name": "7", "x": 36.0, "y": 39.0, "psi": 59.644927978515625, "critical": false}, {"name": "8", "x": 38.0, "y": 30.0, "psi": 81.31510162353516, "critical": false}, {"name": "9", "x": 36.0, "y": 42.0, "psi": 50.70794677734375, "critical": false}, {"name": "10", "x": 37.0, "y": 23.0, "psi": 72.64619445800781, "critical": false}, {"name": "11", "x": 37.0, "y": 49.0, "psi": 48.096431732177734, "critical": false}, {"name": "12", "x": 39.0, "y": 60.0, "psi": 36.2202262878418, "critical": false}, {"name": "13", "x": 38.0, "y": 64.0, "psi": 35.914405822753906, "critical": false}, {"name": "14", "x": 38.0, "y": 66.0, "psi": 40.10639572143555, "critical": false}, {"name": "15", "x": 37.0, "y": 69.0, "psi": 44.36175537109375, "critical": false}, {"name": "16", "x": 27.0, "y": 65.0, "psi": 61.70809555053711, "critical": false}, {"name": "17", "x": 27.0, "y": 69.0, "psi": 48.68683624267578, "critical": false}, {"name": "18", "x": 23.0, "y": 68.0, "psi": 83.35831451416016, "critical": false}, {"name": "19", "x": 21.0, "y": 59.0, "psi": 61.69090270996094, "critical": false}, {"name": "20", "x": 45.0, "y": 68.0, "psi": 53.09800720214844, "critical": false}, {"name": "21", "x": 51.0, "y": 62.0, "psi": 61.75616455078125, "critical": false}, {"name": "22", "x": 54.0, "y": 69.0, "psi": 40.085487365722656, "critical": false}, {"name": "23", "x": 35.0, "y": 74.0, "psi": 26.833532333374023, "critical": false}, {"name": "24", "x": 37.0, "y": 71.0, "psi": 44.30226135253906, "critical": false}, {"name": "25", "x": 35.0, "y": 76.0, "psi": 26.7712459564209, "critical": false}, {"name": "27", "x": 39.0, "y": 87.0, "psi": 70.10428619384766, "critical": false}, {"name": "28", "x": 49.0, "y": 85.0, "psi": 78.77070617675781, "critical": false}, {"name": "29", "x": 42.0, "y": 86.0, "psi": 78.77076721191406, "critical": false}, {"name": "30", "x": 47.0, "y": 80.0, "psi": 70.10198211669922, "critical": false}, {"name": "31", "x": 37.0, "y": 80.0, "psi": 44.104427337646484, "critical": false}, {"name": "32", "x": 23.0, "y": 64.0, "psi": 79.02412414550781, "critical": false}, {"name": "33", "x": 56.0, "y": 73.0, "psi": 48.753395080566406, "critical": false}, {"name": "34", "x": 56.0, "y": 77.0, "psi": 44.419189453125, "critical": false}, {"name": "35", "x": 43.0, "y": 81.0, "psi": 78.77074432373047, "critical": true}, {"name": "36", "x": 53.0, "y": 87.0, "psi": 78.77066802978516, "critical": false}], "pipes": [{"pid": "1", "a": "1", "b": "2"}, {"pid": "2", "a": "2", "b": "5"}, {"pid": "3", "a": "2", "b": "3"}, {"pid": "4", "a": "3", "b": "4"}, {"pid": "5", "a": "4", "b": "5"}, {"pid": "6", "a": "5", "b": "6"}, {"pid": "7", "a": "6", "b": "7"}, {"pid": "8", "a": "7", "b": "8"}, {"pid": "9", "a": "7", "b": "9"}, {"pid": "10", "a": "8", "b": "10"}, {"pid": "11", "a": "9", "b": "11"}, {"pid": "12", "a": "11", "b": "12"}, {"pid": "13", "a": "12", "b": "13"}, {"pid": "14", "a": "13", "b": "14"}, {"pid": "16", "a": "13", "b": "16"}, {"pid": "15", "a": "14", "b": "15"}, {"pid": "22", "a": "14", "b": "20"}, {"pid": "17", "a": "15", "b": "17"}, {"pid": "27", "a": "15", "b": "24"}, {"pid": "18", "a": "16", "b": "17"}, {"pid": "21", "a": "16", "b": "19"}, {"pid": "19", "a": "17", "b": "18"}, {"pid": "20", "a": "18", "b": "32"}, {"pid": "23", "a": "20", "b": "21"}, {"pid": "25", "a": "20", "b": "22"}, {"pid": "24", "a": "21", "b": "22"}, {"pid": "35", "a": "22", "b": "33"}, {"pid": "28", "a": "23", "b": "25"}, {"pid": "26", "a": "24", "b": "23"}, {"pid": "29", "a": "25", "b": "26"}, {"pid": "30", "a": "25", "b": "31"}, {"pid": "32", "a": "27", "b": "29"}, {"pid": "40", "a": "28", "b": "35"}, {"pid": "41", "a": "28", "b": "36"}, {"pid": "34", "a": "29", "b": "28"}, {"pid": "38", "a": "29", "b": "35"}, {"pid": "31", "a": "31", "b": "27"}, {"pid": "37", "a": "32", "b": "19"}, {"pid": "36", "a": "33", "b": "34"}, {"pid": "39", "a": "35", "b": "30"}], "steps": [{"step": 1, "chosen": "2", "reading": 1.8178042919757176, "bits": 1.7022700453188024, "minutes": 13.437096247164249, "survivors": 18, "entropy": 4.246006641805615, "top": "25", "top_prob": 0.08145848130569527, "candidates": [{"node": "2", "bits": 1.7022700453188024, "minutes": 13.437096247164249, "score": 1.7022700453188024}, {"node": "3", "bits": 1.6666602913619195, "minutes": 16.435902436096686, "score": 1.6666602913619195}, {"node": "4", "bits": 1.6222713041871188, "minutes": 20.833333333333336, "score": 1.6222713041871188}, {"node": "5", "bits": 1.6178996604865936, "minutes": 17.57918592477416, "score": 1.6178996604865936}, {"node": "1", "bits": 1.5999907811371925, "minutes": 1.0, "score": 1.5999907811371925}, {"node": "6", "bits": 1.5529394790736424, "minutes": 16.873713942763825, "score": 1.5529394790736424}], "posterior": {"1": 1.2820436822139904e-20, "2": 2.2264719264796765e-18, "3": 8.798813325750592e-19, "4": 3.153835327288588e-18, "5": 1.3471432502899725e-16, "6": 1.3845498367246382e-12, "7": 1.3838836368850939e-06, "8": 2.2422215500079405e-07, "9": 1.0762011151587953e-05, "10": 4.610078861737709e-07, "11": 8.41191169790184e-05, "12": 0.006367197563471896, "13": 0.015923607882571276, "14": 0.023154006083729934, "15": 0.028950275934804554, "16": 0.016657919336121037, "17": 0.01996070830234554, "18": 0.014286823414019744, "19": 0.016976423613861483, "20": 0.020090209872357784, "21": 0.018684411941579288, "22": 0.023281515674336867, "23": 0.06638494105665158, "24": 0.03683312636478007, "25": 0.08145848130569527, "27": 0.07889202331529478, "28": 0.0787221255659902, "29": 0.0787221255659902, "30": 0.0789308176343331, "31": 0.0799816873794291, "32": 0.014722759234966321, "33": 0.02119059411371999, "34": 0.022281061665994948, "35": 0.0787221255659902, "36": 0.07872808136877137}}, {"step": 2, "chosen": "30", "reading": -2.5773629392049866, "bits": 1.2294610657589151, "minutes": 55.176484524156166, "survivors": 4, "entropy": 1.406487602343299, "top": "30", "top_prob": 0.7312003437335091, "candidates": [{"node": "30", "bits": 1.2294610657589151, "minutes": 55.176484524156166, "score": 1.2294610657589151}, {"node": "28", "bits": 1.0622236702983194, "minutes": 59.65758776365147, "score": 1.0622236702983194}, {"node": "36", "bits": 1.0238461192411936, "minutes": 62.61101252087279, "score": 1.0238461192411936}, {"node": "35", "bits": 0.9793358215402215, "minutes": 54.62625538857462, "score": 0.9793358215402215}, {"node": "29", "bits": 0.9447319247091993, "minutes": 58.24397918335517, "score": 0.9447319247091993}, {"node": "19", "bits": 0.9265655731465657, "minutes": 32.542706982944395, "score": 0.9265655731465657}], "posterior": {"1": 4.304227865924687e-23, "2": 7.459386987907054e-21, "3": 2.9518838658336044e-21, "4": 1.058069454760827e-20, "5": 4.513357079668331e-19, "6": 4.624901991209186e-15, "7": 4.584941301037269e-09, "8": 7.50274999437395e-10, "9": 3.540321470885622e-08, "10": 1.5377659171720938e-09, "11": 2.7610121533569854e-07, "12": 2.0619974495674615e-05, "13": 5.1554636615181e-05, "14": 7.534506744373803e-05, "15": 9.468048712504649e-05, "16": 5.5252747375404076e-05, "17": 6.554029566611811e-05, "18": 4.7810464321962374e-05, "19": 5.630331578447552e-05, "20": 6.62417721467333e-05, "21": 6.197443222260555e-05, "22": 7.572040155300574e-05, "23": 0.00021164915079763133, "24": 0.00012046097088709191, "25": 0.0002597067666129632, "27": 0.0047904864832372185, "28": 0.06320130836026869, "29": 0.04214022740137928, "30": 0.7312003437335091, "31": 0.0003988014479837414, "32": 4.9210203834997334e-05, "33": 6.95422396165546e-05, "34": 7.277399972851318e-05, "35": 0.09436786489972318, "36": 0.06244626237025448}}, {"step": 3, "chosen": "35", "reading": -2.7645596959564287, "bits": 0.8453243375425065, "minutes": 3.435921354681384, "survivors": 3, "entropy": 1.4316306902709883, "top": "30", "top_prob": 0.693070854097393, "candidates": [{"node": "35", "bits": 0.8453243375425065, "minutes": 3.435921354681384, "score": 0.8453243375425065}, {"node": "8", "bits": 0.808986310803258, "minutes": 42.336285986268464, "score": 0.808986310803258}, {"node": "20", "bits": 0.7965081622916155, "minutes": 10.137937550497032, "score": 0.7965081622916155}, {"node": "4", "bits": 0.7949342072279808, "minutes": 51.32278030054274, "score": 0.7949342072279808}, {"node": "23", "bits": 0.7862693040466519, "minutes": 11.180339887498949, "score": 0.7862693040466519}, {"node": "24", "bits": 0.7849237945917807, "minutes": 11.211353372561426, "score": 0.7849237945917807}], "posterior": {"1": 1.1167893022876544e-25, "2": 1.9314301104728046e-23, "3": 7.653480956050701e-24, "4": 2.7433038663613234e-23, "5": 1.168495099144374e-21, "6": 1.1935561531455612e-17, "7": 1.1727468526604366e-11, "8": 1.9399390477434296e-12, "9": 8.988243988056991e-11, "10": 3.9625388565034365e-12, "11": 6.992442065656765e-10, "12": 5.1470998357637623e-08, "13": 1.2865312221475096e-07, "14": 1.890476852211688e-07, "15": 2.388448934318224e-07, "16": 1.4151699836141483e-07, "17": 1.6604090397413232e-07, "18": 1.2362052140677543e-07, "19": 1.441835371043731e-07, "20": 1.6856310027921495e-07, "21": 1.5873302306050158e-07, "22": 1.8988286291919535e-07, "23": 5.194884681039226e-07, "24": 3.0387980277522463e-07, "25": 6.374448932846893e-07, "27": 0.00028409993366040404, "28": 0.06465896231270409, "29": 0.027415000247879556, "30": 0.693070854097393, "31": 1.582610690785659e-06, "32": 1.2709012626835204e-07, "33": 1.7607084603067828e-07, "34": 1.83325417682825e-07, "35": 0.15153924703410668, "36": 0.06302660509960832}}], "scenario": {"truth": "29", "leak_lps": 25.537930612148372, "leak_pct": 125.40567958593259, "sigma": 0.6103277807866851, "critical_node": "35", "critical_min_psi": 30.0, "service_min_psi": 20.0, "sims": 36, "sim_seconds": 0.24954485893249512, "demand_lps": 20.364253593992}, "identifiability": {"verdict": "NOT_IDENTIFIABLE_FROM_PRESSURE", "survivors": ["30", "35", "28"], "n_pairs": 3, "blocked": [[0.1233978271484375, "35", "28", "28"], [0.6862106323242188, "30", "35", "30"], [0.7855758666992188, "30", "28", "30"]], "advice_node": "36", "advice_sep": 0.10494232177734375, "threshold": 1.2206555615733703}, "candidates": [{"candidate": "30", "probability": 0.693070854097393, "best_plan": "tight ring + backup supply", "valves": 1, "critical_psi": 78.77427673339844, "out": 0, "naive_critical_psi": 55.4056282043457, "safe": true}, {"candidate": "35", "probability": 0.15153924703410668, "best_plan": "tight ring + backup supply", "valves": 3, "critical_psi": 65.06365203857422, "out": 0, "naive_critical_psi": 2.00038480758667, "safe": true}, {"candidate": "28", "probability": 0.06465896231270409, "best_plan": "tight ring", "valves": 3, "critical_psi": 78.77178955078125, "out": 1, "naive_critical_psi": 2.00038480758667, "safe": true}], "dangerous": ["35", "28"], "isolation": [{"name": "tight ring", "accepted": true, "segment": ["39"], "baseline_psi": 78.7707290649414, "critical_psi": 78.77427673339844, "stranded_graph": ["30"], "pressure_only": [], "already_dry": [], "stranded_hydraulics": 1, "valves": 1, "agree": true, "backup": false, "chosen": false}, {"name": "tight ring + backup supply", "accepted": true, "segment": ["39"], "baseline_psi": 78.7707290649414, "critical_psi": 78.77427673339844, "stranded_graph": [], "pressure_only": [], "already_dry": [], "stranded_hydraulics": 0, "valves": 1, "agree": true, "backup": true, "chosen": true}, {"name": "wider ring", "accepted": true, "segment": ["39", "38", "40"], "baseline_psi": 78.7707290649414, "critical_psi": 55.4056282043457, "stranded_graph": ["30", "35"], "pressure_only": [], "already_dry": ["35"], "stranded_hydraulics": 1, "valves": 3, "agree": false, "backup": false, "chosen": false}, {"name": "wider ring + backup supply", "accepted": true, "segment": ["39", "38", "40"], "baseline_psi": 78.7707290649414, "critical_psi": 65.06365203857422, "stranded_graph": ["35"], "pressure_only": [], "already_dry": ["35"], "stranded_hydraulics": 0, "valves": 3, "agree": false, "backup": true, "chosen": false}], "measured": [{"net": "Net2  35 junctions,  20.4 L/s", "junctions": 35, "incidents": 35, "fused": 24, "pairs": 66, "info_top1": 8.571428571428571, "rand_top1": 8.571428571428571, "info_top5": 37.142857142857146, "rand_top5": 28.571428571428573, "info_hops": 4.485714285714286, "rand_hops": 5.142857142857143, "lift": 12.777777777777787}, {"net": "Net3  92 junctions, 192.6 L/s", "junctions": 92, "incidents": 92, "fused": 8, "pairs": 66, "info_top1": 19.565217391304348, "rand_top1": 5.434782608695652, "info_top5": 46.73913043478261, "rand_top5": 22.82608695652174, "info_hops": 3.9782608695652173, "rand_hops": 6.271739130434782, "lift": 36.56845753899481}]};</script>
+<style>
+  :root{
+    --bg:#04070C; --bg2:#070C14; --rule:#152232;
+    --ink:#E6F0F8; --ink2:#93A9BD; --ink3:#5B7085;
+    --wave:#3E7FB8; --wave2:#8FC4E8; --foam:#E8F2FA;
+    --mint:#35D6A0; --alarm:#FF6B4A; --amber:#F0B429;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;
+       -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+
+  /* halftone swell — the hero's dot field, carried through as atmosphere */
+  #swell{position:fixed;inset:0;pointer-events:none;opacity:.55}
+
+  #page{position:relative;display:grid;grid-template-rows:auto auto 1fr auto;
+        height:100vh;max-width:1580px;margin:0 auto;padding:0 44px}
+
+  .top{display:flex;align-items:center;gap:13px;padding:20px 0 18px}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px;background:var(--mint)}
+  .glyph i:nth-child(1){left:0;top:5px;opacity:.55}
+  .glyph i:nth-child(2){left:5px;top:0;background:var(--wave2)}
+  .glyph i:nth-child(3){left:10px;top:8px;opacity:.8}
+  .brand{font-size:15px;letter-spacing:.02em}
+  .grow{flex:1}
+  .nav{display:flex;gap:26px;font-size:11px;letter-spacing:.16em;color:var(--ink3)}
+  .nav b{color:var(--ink);font-weight:400;cursor:pointer}
+  .nav span{cursor:pointer}
+  .nav span:hover{color:var(--ink2)}
+
+  .pill{display:inline-flex;align-items:center;gap:9px;padding:5px 13px;
+        border:1px solid var(--rule);border-radius:20px;font-size:10.5px;
+        letter-spacing:.14em;color:var(--ink2);background:rgba(7,12,20,.7)}
+  .pill s{width:6px;height:6px;border-radius:50%;background:var(--mint);
+          text-decoration:none;box-shadow:0 0 8px var(--mint)}
+
+  .head{display:grid;grid-template-columns:1fr 336px;gap:54px;align-items:end;
+        padding:4px 0 18px;border-bottom:1px solid var(--rule)}
+  h1{font-family:var(--disp);font-size:clamp(30px,3.1vw,44px);line-height:1.04;
+     font-weight:400;letter-spacing:-.012em;margin-top:14px}
+  h1 em{font-style:italic;color:var(--wave2)}
+  .stand{font-size:12.5px;line-height:1.62;color:var(--ink2);max-width:58ch;margin-top:13px}
+  .stand b{color:var(--ink);font-weight:400}
+  .stand u{text-decoration:none;color:var(--mint)}
+  .readout{text-align:right}
+  .readout .l{font-size:10px;letter-spacing:.16em;color:var(--ink3)}
+  .readout .n{font-family:var(--disp);font-size:52px;line-height:1;margin:6px 0 4px}
+  .readout .d{font-size:11px;color:var(--ink3)}
+
+  .fig{display:grid;grid-template-columns:1fr 336px;gap:54px;min-height:0;padding-top:14px}
+  .plot{display:flex;flex-direction:column;min-height:0}
+  svg#plot{width:100%;flex:1;min-height:0;display:block}
+  .key{display:flex;flex-wrap:wrap;gap:17px;padding-top:11px;margin-top:10px;
+       border-top:1px solid var(--rule);font-size:10.5px;color:var(--ink3);
+       letter-spacing:.05em}
+  .key i{display:inline-block;width:15px;border-top:2px solid;margin-right:6px;
+         vertical-align:middle}
+  .key u{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;
+         vertical-align:middle;text-decoration:none}
+
+  .side{overflow-y:auto;padding-bottom:6px}
+  .side::-webkit-scrollbar{width:3px}
+  .side::-webkit-scrollbar-thumb{background:var(--rule)}
+  h2{font-size:10px;letter-spacing:.18em;color:var(--ink3);padding-bottom:8px;
+     border-bottom:1px solid var(--rule);margin-bottom:11px}
+  .blk{margin-bottom:24px}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:12px;
+       border-bottom:1px solid rgba(21,34,50,.65)}
+  .row span{color:var(--ink2)}
+  .row b{font-weight:400}
+  .row.good b{color:var(--mint)} .row.bad b{color:var(--alarm)}
+  .cap{font-size:11px;line-height:1.6;color:var(--ink3);margin-top:10px}
+  .cap b{color:var(--ink2);font-weight:400}
+  .tags{display:flex;flex-wrap:wrap;gap:5px}
+  .tag{font-size:11px;padding:3px 8px;border:1px solid var(--rule);color:var(--ink2)}
+  .tag.lead{border-color:var(--alarm);color:var(--alarm)}
+
+  .foot{border-top:1px solid var(--rule)}
+  .steps{display:flex}
+  .cell{flex:1;padding:11px 13px 13px;cursor:pointer;border-right:1px solid var(--rule);
+        min-width:0;transition:background .16s}
+  .cell:last-child{border-right:0}
+  .cell:hover{background:var(--bg2)}
+  .cell.on{background:linear-gradient(180deg,rgba(53,214,160,.11),transparent)}
+  .cell.on::before{content:"";position:absolute;margin-top:-11px;height:2px;width:0}
+  .cell .k{font-size:9.5px;letter-spacing:.15em;color:var(--ink3)}
+  .cell .v{font-family:var(--disp);font-size:22px;line-height:1.3}
+  .cell.on .v{color:var(--mint)}
+  .cell .s{font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;
+           text-overflow:ellipsis}
+  .src{display:flex;justify-content:space-between;padding:9px 0 13px;font-size:10px;
+       color:var(--ink3)}
+
+  /* Responsive. Below ~1180px the two-column figure cannot hold its side rail, so
+     tighten, then stack it under the drawing and let the page scroll. */
+  @media (max-width:1320px){
+    #page{padding:0 28px}
+    .head,.fig{grid-template-columns:1fr 300px;gap:34px}
+  }
+  @media (max-width:1180px){
+    html,body{overflow:auto}
+    /* grid and flex children need min-width:0 or they refuse to shrink below their
+       content and push the whole sheet off the right edge */
+    #page{height:auto;min-height:100vh;grid-template-rows:auto auto auto auto;
+          padding:0 24px;min-width:0}
+    #page>*{min-width:0}
+    .foot{min-width:0;overflow:hidden}
+    .steps{min-width:0}
+    .head{grid-template-columns:1fr;gap:20px}
+    .readout{border-left:0;border-top:2px solid var(--wave2);padding:14px 0 0}
+    .fig{grid-template-columns:1fr;gap:26px}
+    .plot{min-height:56vh}
+    svg{min-height:56vh}
+    .side{overflow:visible;max-height:none}
+    .steps{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .cell{flex:0 0 auto;min-width:96px}
+  }
+  @media (max-width:680px){
+    h1{font-size:26px}
+    .key{gap:11px;font-size:10.5px}
+    #page{padding:0 16px}
+  }
+
+  @media (prefers-reduced-motion:no-preference){
+    .flow{animation:flow linear infinite}
+    @keyframes flow{to{stroke-dashoffset:-200}}
+  }
+</style>
+</head>
+<body>
+<canvas id="swell"></canvas>
+<div id="page">
+  <div class="top">
+    <div class="glyph"><i></i><i></i><i></i></div>
+    <div class="brand">Rivus</div>
+    <div class="grow"></div>
+    <div class="nav" id="nav"></div>
+  </div>
+
+  <div class="head">
+    <div>
+      <span class="pill"><s></s><span id="pill"></span></span>
+      <h1 id="h1"></h1>
+      <div class="stand" id="stand"></div>
+    </div>
+    <div class="readout">
+      <div class="l" id="rl"></div><div class="n" id="rn"></div><div class="d" id="rd"></div>
+    </div>
+  </div>
+
+  <div class="fig">
+    <div class="plot"><svg id="plot" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="key" id="key"></div></div>
+    <div class="side" id="side"></div>
+  </div>
+
+  <div class="foot">
+    <div class="steps" id="steps"></div>
+    <div class="src"><span id="src"></span><span>← → TO STEP</span></div>
+  </div>
+</div>
+
+<script>
+const T=window.TRACE,S=T.scenario;
+const $=i=>document.getElementById(i), f=(v,n=2)=>Number(v).toFixed(n);
+const NP=T.steps.length,NPLAN=T.isolation.length,LAST=NP+1+NPLAN;
+let stage=NP+1+Math.max(0,T.isolation.findIndex(p=>p.chosen));
+
+/* ---------- halftone swell: the hero's dot field, as living atmosphere ---------- */
+const cv=$('swell'),cx=cv.getContext('2d');
+let t0=performance.now();
+function swell(){
+  const w=cv.width=innerWidth, h=cv.height=innerHeight;
+  const t=(performance.now()-t0)/9000, gap=13;
+  cx.clearRect(0,0,w,h);
+  for(let y=0;y<h;y+=gap){
+    for(let x=0;x<w;x+=gap){
+      const u=x/w, v=y/h;
+      // stacked sine ridges, the same shape family as the hero artwork
+      const a=Math.sin(u*5.2+t*1.3+Math.cos(v*3.1+t*.7)*1.5);
+      const b=Math.sin(u*2.4-t*.9+v*4.6);
+      const n=(a*.65+b*.35);
+      const band=Math.max(0,n);
+      const fall=Math.pow(1-v,1.5)*Math.min(1,u*1.6+.15);
+      const r=band*fall*3.1;
+      if(r>.22){
+        const wash=Math.min(1,band*fall*1.5);
+        cx.fillStyle=`rgba(${Math.round(62+180*wash)},${Math.round(127+120*wash)},${Math.round(184+66*wash)},${(.09+wash*.5).toFixed(3)})`;
+        cx.beginPath(); cx.arc(x,y,r,0,6.283); cx.fill();
+      }
+    }
+  }
+  requestAnimationFrame(swell);
+}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches) swell();
+else { cv.width=innerWidth; cv.height=innerHeight; }
+
+/* ---------------------------- the network figure ---------------------------- */
+const by={}; T.nodes.forEach(n=>by[n.name]=n);
+const px=n=>n.y, py=n=>-n.x;               // quarter turn: district is tall, sheet is wide
+const XS=T.nodes.map(px),YS=T.nodes.map(py),M=8;
+const bb={x0:Math.min(...XS)-M,y0:Math.min(...YS)-M,
+          w:Math.max(...XS)-Math.min(...XS)+M*2,h:Math.max(...YS)-Math.min(...YS)+M*2};
+$('plot').setAttribute('viewBox',`${bb.x0} ${bb.y0} ${bb.w} ${bb.h}`);
+const U=bb.w/100;
+
+const post=s=>s<1?Object.fromEntries(T.nodes.map(n=>[n.name,1/T.nodes.length]))
+                 :T.steps[Math.min(s,NP)-1].posterior;
+const planAt=s=>(s>=NP+2&&s<=NP+1+NPLAN)?T.isolation[s-NP-2]:null;
+function credible(p,m=.9){const r=Object.entries(p).sort((a,b)=>b[1]-a[1]);
+  const o=[];let a=0;for(const[n,q]of r){o.push(n);a+=q;if(a>=m)break}return o}
+
+function draw(){
+  const P=post(stage), plan=planAt(stage);
+  const dead=plan?plan.stranded_graph:[], cut=plan?plan.segment:[];
+  const probed=T.steps.slice(0,Math.min(stage,NP)).map(s=>s.chosen);
+  const surv=stage>=1?credible(P):[];
+  let g='';
+
+  // belief drawn as a halftone field — same language as the swell, but the dot size
+  // is probability, so the decoration and the data are the same mark
+  if(stage>=1){
+    const step=U*1.15;
+    for(let y=bb.y0;y<bb.y0+bb.h;y+=step){
+      for(let x=bb.x0;x<bb.x0+bb.w;x+=step){
+        let d=0;
+        surv.forEach(nm=>{
+          const n=by[nm]; if(!n) return;
+          const q=(P[nm]||0)*T.nodes.length;
+          const r2=(px(n)-x)**2+(py(n)-y)**2;
+          d+=q*Math.exp(-r2/(U*U*13));
+        });
+        if(d>.09){
+          const r=Math.min(step*.42,step*.1+d*step*.2);
+          g+=`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}"
+              fill="var(--alarm)" fill-opacity="${Math.min(.5,.1+d*.22).toFixed(3)}"/>`;
+        }
+      }
+    }
+  }
+
+  T.pipes.forEach(p=>{
+    const a=by[p.a],b=by[p.b]; if(!a||!b)return;
+    const isCut=cut.includes(p.pid), off=dead.includes(p.a)&&dead.includes(p.b);
+    g+=`<line x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}"
+      stroke="${isCut?'var(--alarm)':off?'#16212E':'var(--wave)'}"
+      stroke-opacity="${off?1:isCut?.95:.62}" stroke-width="${U*(isCut?.26:.19)}"
+      ${off?`stroke-dasharray="${U*.8} ${U*.8}"`:''}/>`;
+    if(!isCut&&!off){
+      const L=Math.hypot(px(b)-px(a),py(b)-py(a));
+      g+=`<line x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}" class="flow"
+        stroke="var(--foam)" stroke-opacity=".75" stroke-width="${U*.17}"
+        stroke-linecap="round" stroke-dasharray="${U*.8} ${U*5.4}" pathLength="200"
+        style="animation-duration:${(3.2+L/24).toFixed(2)}s"/>`;
+    }
+    if(isCut){
+      const mx=(px(a)+px(b))/2,my=(py(a)+py(b))/2;
+      const an=Math.atan2(py(b)-py(a),px(b)-px(a))*180/Math.PI;
+      g+=`<g transform="translate(${mx} ${my}) rotate(${an})">
+        <line x1="0" y1="${-U*1.1}" x2="0" y2="${U*1.1}" stroke="var(--alarm)"
+        stroke-width="${U*.3}" stroke-linecap="round"/></g>`;
+    }
+  });
+
+  T.nodes.forEach(n=>{
+    const off=dead.includes(n.name), pr=probed.includes(n.name), inSet=surv.includes(n.name);
+    let fill=off?'#16212E':'var(--bg)', stroke=off?'#22303F':'var(--wave2)', r=U*.42;
+    if(inSet){stroke='var(--alarm)';fill='var(--alarm)';r=U*.55}
+    if(pr){stroke='var(--foam)';fill='var(--foam)';r=U*.5}
+    if(n.critical){stroke=off?'var(--alarm)':'var(--mint)';fill='var(--bg)';r=U*.78}
+    g+=`<circle cx="${px(n)}" cy="${py(n)}" r="${r}" fill="${fill}" stroke="${stroke}"
+        stroke-width="${U*.17}"/>`;
+    if(n.critical){
+      const c=off?'var(--alarm)':'var(--mint)', rt=px(n)>bb.x0+bb.w*.6, d=rt?-1:1;
+      g+=`<line x1="${px(n)+d*U*1.25}" y1="${py(n)}" x2="${px(n)+d*U*3.3}" y2="${py(n)}"
+          stroke="${c}" stroke-width="${U*.1}" stroke-opacity=".8"/>
+        <text x="${px(n)+d*U*3.7}" y="${py(n)+U*.48}" font-size="${U*1.4}" fill="${c}"
+          text-anchor="${rt?'end':'start'}" font-family="var(--mono)"
+          letter-spacing="${U*.1}">HOSPITAL${off?' · NO SUPPLY':''}</text>`;
+    }
+    if(pr) g+=`<text x="${px(n)}" y="${py(n)-U*1.5}" font-size="${U*1.3}" fill="var(--foam)"
+        text-anchor="middle" font-family="var(--mono)">${probed.indexOf(n.name)+1}</text>`;
+    else if(inSet){
+      const rt=px(n)>bb.x0+bb.w*.88;
+      g+=`<text x="${px(n)+(rt?-U*1.1:U*1.1)}" y="${py(n)-U*.95}" font-size="${U*1.25}"
+          fill="var(--alarm)" text-anchor="${rt?'end':'start'}"
+          font-family="var(--mono)">${n.name}</text>`;
+    }
+  });
+
+  if(stage>=NP+1){
+    const t=by[S.truth];
+    if(t)g+=`<circle cx="${px(t)}" cy="${py(t)}" r="${U*1.55}" fill="none"
+      stroke="var(--foam)" stroke-width="${U*.15}" stroke-dasharray="${U*.5} ${U*.45}"/>
+      <text x="${px(t)}" y="${py(t)+U*3.3}" font-size="${U*1.25}" fill="var(--foam)"
+      text-anchor="middle" font-family="var(--mono)" opacity=".85">ACTUAL BREAK</text>`;
+  }
+  $('plot').innerHTML=g;
+  $('key').innerHTML=[
+    `<span><i style="border-color:var(--wave)"></i>CHARGED MAIN</span>`,
+    `<span><i style="border-color:#22303F;border-top-style:dashed"></i>NO SUPPLY</span>`,
+    `<span><i style="border-color:var(--alarm)"></i>VALVE CLOSED</span>`,
+    `<span><u style="background:var(--alarm)"></u>STILL POSSIBLE</span>`,
+    `<span><u style="background:var(--foam)"></u>GAUGE READ</span>`,
+    `<span><u style="border:2px solid var(--mint)"></u>CRITICAL FACILITY</span>`].join('');
+  side(); steps();
+}
+
+function side(){
+  const st=(stage>=1&&stage<=NP)?T.steps[stage-1]:null;
+  const held=stage>=1?T.steps[Math.min(stage,NP)-1]:null;
+  const prev=stage>=2?T.steps[Math.min(stage,NP)-2]:null;
+  const plan=planAt(stage), I=T.identifiability;
+  const n3=(T.measured||[]).find(m=>m.junctions>50), n2=(T.measured||[]).find(m=>m.junctions<50);
+
+  let h1,stand,rl,rn,rd;
+  if(stage===0){
+    h1=`Find the leak<br>without <em>guessing</em>`;
+    stand=`A main has failed somewhere under this district. <b>${T.nodes.length} junctions</b>
+      could be responsible. One crew check costs an hour; the wrong excavation costs about
+      twenty thousand dollars.`;
+    rl='CANDIDATES'; rn=T.nodes.length; rd='every junction, equally likely';
+  } else if(st){
+    h1=`${held.survivors} junctions<br><em>still possible</em>`;
+    stand=`Gauge at node ${st.chosen} reads <b>${st.reading>=0?'+':''}${f(st.reading)} psi</b>.
+      Chosen because it removes more uncertainty than any other hydrant —
+      <u>${f(st.bits)} bits</u>, ${f(st.minutes,0)} minutes away.
+      ${prev?`Down from ${prev.survivors}.`:`Down from ${T.nodes.length}.`}`;
+    rl='UNCERTAINTY'; rn=f(held.entropy); rd=`bits · was ${f(Math.log2(T.nodes.length))} at the start`;
+  } else if(stage===NP+1){
+    h1=`What we know,<br>and what we <em>don't</em>`;
+    stand=`<b>${I.blocked.length} of ${I.n_pairs}</b> surviving pairs differ by less than the
+      <u>${f(I.threshold)} psi</u> we can distinguish, anywhere in the network. No probe
+      sequence separates them. We report a credible set, never a single pipe.`;
+    rl='INSEPARABLE PAIRS'; rn=I.blocked.length;
+    rd=`smallest gap ${f(I.blocked[0]?I.blocked[0][0]:0,3)} psi`;
+  } else if(plan){
+    h1=plan.accepted?`The hospital<br><em>holds</em>`:`The hospital<br><em>goes dry</em>`;
+    stand=`Closing ${plan.valves||plan.segment.length} valve(s) leaves
+      <b>${plan.stranded_hydraulics} of ${T.nodes.length}</b> junctions without service.
+      Screened two ways that share no code: reachability across the pipe graph, and a
+      pressure-dependent hydraulic run on the same valve set.`;
+    rl='HOSPITAL PRESSURE'; rn=f(plan.critical_psi,1);
+    rd=`psi · was ${f(plan.baseline_psi,1)} before the work`;
+  }
+  $('h1').innerHTML=h1; $('stand').innerHTML=stand;
+  $('rl').textContent=rl; $('rn').textContent=rn; $('rd').textContent=rd;
+  $('pill').textContent=`${T.nodes.length} JUNCTIONS · ${T.pipes.length} PIPES · ${S.sims} RUNS IN ${f(S.sim_seconds)}S`;
+  $('src').textContent=`EPA EPANET NET2 · PRESSURE-DEPENDENT DEMAND · GAUGE σ ${f(S.sigma)} PSI · READINGS FROM A PERTURBED MODEL`;
+  $('nav').innerHTML=[[1,'METHOD'],[NP+1,'LIMITS'],[NP+2,'RESULTS']]
+    .map(([i,l])=>`<span data-j="${i}" ${stage===i?'style="color:var(--ink)"':''}>${l}</span>`).join('');
+  document.querySelectorAll('.nav span').forEach(e=>e.onclick=()=>{stage=+e.dataset.j;draw()});
+
+  let R='';
+  if(stage>=1){
+    const surv=credible(post(stage));
+    R+=`<div class="blk"><h2>STILL IN PLAY</h2><div class="tags">${
+      surv.map((n,i)=>`<span class="tag ${i===0?'lead':''}">${n}</span>`).join('')}</div>
+      <div class="cap">${surv.length} of ${T.nodes.length} junctions hold 90% of the belief.
+      Top-1 is not a call we make.</div></div>`;
+  }
+  if(stage>=NP+2&&T.candidates){
+    R+=`<div class="blk"><h2>SHUTDOWN PER CANDIDATE</h2>`;
+    T.candidates.forEach(c=>{
+      const bad=c.naive_critical_psi<S.critical_min_psi;
+      R+=`<div class="row ${bad?'bad':'good'}"><span>node ${c.candidate} · p=${f(c.probability,2)}</span>
+        <b>${f(c.critical_psi,0)} psi safe${bad?` / ${f(c.naive_critical_psi)} wrong`:''}</b></div>`;
+    });
+    R+=`<div class="cap">The exact junction is identified about 10% of the time, so every
+      candidate still supported gets its own shutdown plan. At two of these, the wrong
+      valve choice puts the hospital at <b>2 psi</b>.</div></div>`;
+  }
+  if(n3){
+    R+=`<div class="blk"><h2>MEASURED AGAINST A RANDOM CONTROL</h2>
+      <div class="row good"><span>${n3.junctions}-junction district</span><b>+${f(n3.lift,0)}% closer</b></div>
+      <div class="row"><span>finds exact junction</span><b>${f(n3.info_top1,1)}% vs ${f(n3.rand_top1,1)}%</b></div>
+      <div class="row"><span>${n2.junctions}-junction network</span><b>no advantage</b></div>
+      <div class="cap">Our first figure was 43% closer. A teammate's non-circularity test
+      proved that setup was marking its own homework, so it was withdrawn. This is what
+      survived: nothing on the small network, <b>3.6× better than chance</b> on a real
+      district at p&lt;0.01, across 105 incidents per arm.</div></div>`;
+  }
+  $('side').innerHTML=R;
+}
+
+function steps(){
+  const nm=['AT REST',...T.steps.map(s=>`PROBE ${s.step}`),'THE LIMIT',
+            ...T.isolation.map((p,i)=>`SHUTDOWN ${String.fromCharCode(65+i)}`)];
+  let h='';
+  for(let i=0;i<=LAST;i++){
+    let v,s;
+    if(i===0){v=T.nodes.length;s='candidates'}
+    else if(i<=NP){v=T.steps[i-1].survivors;s=`gauge at ${T.steps[i-1].chosen}`}
+    else if(i===NP+1){v=T.identifiability.blocked.length;s='inseparable pairs'}
+    else{const p=T.isolation[i-NP-2];v=f(p.critical_psi,1);
+         s=(p.accepted?'psi · safe':'psi · rejected')+(p.chosen?' · chosen':'')}
+    h+=`<div class="cell ${i===stage?'on':''}" data-i="${i}"><div class="k">${nm[i]}</div>
+        <div class="v">${v}</div><div class="s">${s}</div></div>`;
+  }
+  $('steps').innerHTML=h;
+  document.querySelectorAll('.cell').forEach(e=>e.onclick=()=>{stage=+e.dataset.i;draw()});
+}
+
+addEventListener('resize',()=>{cv.width=innerWidth;cv.height=innerHeight;});
+document.onkeydown=e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();if(stage<LAST){stage++;draw()}}
+  if(e.key==='ArrowLeft'&&stage>0){stage--;draw()}
+};
+draw();
+</script>
+</body>
+</html>

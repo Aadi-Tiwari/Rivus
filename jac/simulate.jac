@@ -1,170 +1,256 @@
-import math;
-import from hydraulics { topology, run }
+"""PipeTrace — simulation and belief.  [ OWNER: Person B ]
 
-glob CFG = {"noise": 0.35, "leak_gpm": 400.0, "model_sigma": 1.30, "rough_cv": 0.10, "dem_cv": 0.08};
+The EPANET boundary, the forward model, the Bayesian posterior, and expected
+information gain. Everything here is numerical. Anything that reasons about network
+connectivity belongs in graphops.jac, which Person A owns.
 
-def lcg_next(state: int) -> int {
-    "Deterministic linear congruential generator so runs are reproducible without Python.";
-    return (1103515245 * state + 12345) % 2147483648;
+Keep this file small, and keep it in Jac: the posterior and the information-gain
+estimate are walkers and defs on purpose. Moving them into Python would push the
+project under the 40% Jac requirement.
+"""
+
+include network;
+
+
+# ---------------------------------------------------------------- forward model
+walker BuildForwardModel {
+    """One EPANET run per candidate leak location.
+
+    A leak anywhere moves pressure everywhere, so a single simulation yields the
+    predicted reading at every possible probe site. That is why this is affordable.
+    """
+    has count: int = 0;
+    has seconds: float = 0.0;
+
+    can build with entry {
+        import time;
+        t0 = time.time();
+        base = snapshot(inp());
+        n = len(NODES);
+        for h in NODES {
+            p = snapshot(inp(), leak_node=h, leak_c=leak_c());
+            sig = [];
+            for j in NODES { sig.append(p[j] - base[j]); }
+            here ++> Hypothesis(location=h, prob=1.0 / n, signature=sig);
+            self.count += 1;
+        }
+        self.seconds = time.time() - t0;
+        print(f"[forward] {self.count + 1} EPANET runs in {self.seconds:.2f}s "
+              f"({(self.seconds / (self.count + 1)) * 1000:.0f} ms each)");
+    }
 }
 
-def lcg_unit(state: int) -> tuple {
-    "Return a uniform in [0,1) and the advanced generator state.";
-    s = lcg_next(state);
-    return (s / 2147483648.0, s);
-}
+glob OBSERVED: dict = {};
+glob META: dict = {};   # mutated in place, unlike a glob rebind
 
-def lcg_normal(state: int) -> tuple {
-    "Irwin-Hall normal approximation. Adequate for 8-10 percent parameter perturbation.";
-    total = 0.0;
-    s = state;
-    for _ in range(12) {
-        pair = lcg_unit(s);
-        total += pair[0];
-        s = pair[1];
-    }
-    return (total - 6.0, s);
-}
+walker StageIncident {
+    """Hides a leak and produces what a crew would actually read.
 
-def build_forward_model(candidates: list) -> dict {
-    "Nominal predicted gauge pressures for every candidate leak site. One EPANET solve each.";
-    model = {};
-    for c in candidates {
-        model[c] = run(c, CFG["leak_gpm"], None, None);
-    }
-    return model;
-}
+    Person B measured the previous version of this and it failed its own gate: the
+    baseline and the leak snapshot were taken under the SAME perturbation, so the
+    perturbation cancelled in residual space. Median divergence from the nominal model
+    was 0.04 psi against a 0.35 psi gauge-noise floor. The defence was cosmetic.
 
-def stage_incident(truth: str, gauges: list, pipes: list, seed: int) -> dict {
-    "Crew readings from a PERTURBED model: demands at 8 percent CV and roughness at 10 percent CV.";
-    s = seed * 7919 + 13;
-    dscale = {};
-    for g in gauges {
-        pair = lcg_normal(s);
-        dscale[g] = 1.0 + CFG["dem_cv"] * pair[0];
-        s = pair[1];
-    }
-    rscale = {};
-    for p in pipes {
-        pair = lcg_normal(s);
-        rscale[p] = 1.0 + CFG["rough_cv"] * pair[0];
-        s = pair[1];
-    }
-    perturbed = run(truth, CFG["leak_gpm"], dscale, rscale);
-    readings = {};
-    for g in gauges {
-        pair = lcg_normal(s);
-        readings[g] = perturbed[g] + CFG["noise"] * pair[0];
-        s = pair[1];
-    }
-    return {"readings": readings, "perturbed": perturbed};
-}
+    The fix is physics, not a tuning knob. Three sources of mismatch, separated by
+    whether they actually cancel when you difference two snapshots:
 
-def total_sigma() -> float {
-    "Gauge noise and forward-model error add in quadrature. Using gauge noise alone makes the posterior confidently wrong.";
-    return math.sqrt(CFG["noise"] * CFG["noise"] + CFG["model_sigma"] * CFG["model_sigma"]);
-}
+      roughness   persistent. The pipe is as rough today as it was when the baseline
+                  was recorded, and our model is wrong about it in the same way both
+                  times. This SHOULD cancel, and it does. Shared draw.
+      demand      day to day. The historical baseline was recorded on a different day
+                  under different consumption. This does NOT cancel. Independent draws.
+      leak size   unknown. The diagnosis assumes LEAK_C; the actual break is whatever
+                  it is. This does NOT cancel. Drawn per incident.
 
-def log_like(readings: dict, pred: dict, seen: list) -> float {
-    "Gaussian log likelihood of the observed gauges under one candidate.";
-    ll = 0.0;
-    sg = total_sigma();
-    for g in seen {
-        r = (readings[g] - pred[g]) / sg;
-        ll -= 0.5 * r * r;
-    }
-    return ll;
-}
+    That is what a crew's evidence actually looks like, and it is a materially harder
+    problem than the version this replaces.
+    """
+    has truth: str;
+    has seed: int = 7;
+    has leak_lps: float = 0.0;
+    has true_leak_c: float = 0.0;
+    # a parameter, not a glob read: assigning to a glob inside a scope silently
+    # creates a local in Jac, which made an earlier sweep of this value a no-op.
+    has demand_cv: float = -1.0;
 
-def posterior(readings: dict, model: dict, candidates: list, seen: list) -> dict {
-    "Normalised posterior over candidate leak sites given the gauges probed so far.";
-    lls = {};
-    best = -1.0e18;
-    for c in candidates {
-        v = log_like(readings, model[c], seen);
-        lls[c] = v;
-        if v > best { best = v; }
-    }
-    total = 0.0;
-    w = {};
-    for c in candidates {
-        e = math.exp(lls[c] - best);
-        w[c] = e;
-        total += e;
-    }
-    post = {};
-    for c in candidates {
-        post[c] = w[c] / total;
-    }
-    return post;
-}
+    can stage with entry {
+        random.seed(self.seed);
+        topo = topology(inp());
+        dcv = self.demand_cv;
+        if dcv < 0.0 { dcv = DEMAND_CV; }
 
-def entropy(post: dict) -> float {
-    "Shannon entropy of the posterior in bits.";
-    h = 0.0;
-    for k in post.keys() {
-        p = post[k];
-        if p > 0.0 {
-            h -= p * math.log(p, 2);
+        # persistent model error: same pipes, same wrong roughness, both snapshots
+        rm = {};
+        for p in topo["pipes"] { rm[p[0]] = random.lognormvariate(0.0, ROUGH_CV); }
+
+        # demand differs between the historical baseline and today
+        dm_hist = {};
+        dm_now = {};
+        for j in topo["junctions"] {
+            dm_hist[j] = random.lognormvariate(0.0, dcv);
+            dm_now[j] = random.lognormvariate(0.0, dcv);
+        }
+
+        # the break is whatever size it is; the forward model assumes LEAK_C
+        self.true_leak_c = leak_c() * random.lognormvariate(0.0, LEAK_SIZE_CV);
+
+        base = snapshot(inp(), demand_mult=dm_hist, rough_mult=rm);
+        leak = snapshot(inp(), leak_node=self.truth, leak_c=self.true_leak_c,
+                        demand_mult=dm_now, rough_mult=rm);
+        OBSERVED.clear();
+        for j in NODES { OBSERVED[j] = leak[j] - base[j]; }
+
+        head_m = base[self.truth] / 1.4219702063247;
+        if head_m < 0.0 { head_m = 0.0; }
+        self.leak_lps = self.true_leak_c * math.sqrt(head_m) * 1000.0;
+
+        # the junction the supply main ties into, for isolation flooding
+        for p in topo["pipes"] {
+            if p[1] in topo["sources"] { META["supply"] = p[2]; }
+            elif p[2] in topo["sources"] { META["supply"] = p[1]; }
         }
     }
-    return h;
 }
 
-def expected_information(gauge: str, post: dict, model: dict, candidates: list,
-                         readings: dict, seen: list) -> float {
-    "Expected entropy reduction from probing this gauge, marginalised over predicted readings.";
-    h0 = entropy(post);
-    exp_h = 0.0;
-    for c in candidates {
-        pc = post[c];
-        if pc < 1.0e-6 { continue; }
-        hypo = {};
-        for g in seen { hypo[g] = readings[g]; }
-        hypo[gauge] = model[c][gauge];
-        seen2 = [];
-        for g in seen { seen2.append(g); }
-        seen2.append(gauge);
-        exp_h += pc * entropy(posterior(hypo, model, candidates, seen2));
-    }
-    return h0 - exp_h;
+
+def read_gauge(location: str) -> float {
+    """One field measurement: the true residual plus gauge noise.""";
+    return OBSERVED[location] + random.gauss(0.0, GAUGE_NOISE);
 }
 
-def divergence_stats(nominal: dict, perturbed: dict, gauges: list) -> dict {
-    "Gate: the perturbed truth must diverge from the nominal model by more than gauge noise.";
-    diffs = [];
-    for g in gauges {
-        diffs.append(abs(nominal[g] - perturbed[g]));
-    }
-    diffs.sort();
-    n = len(diffs);
+
+
+def expected_information(mu: list, probs: list, draws: int) -> float {
+    """Differential entropy of the predictive Gaussian mixture, by Monte Carlo.""";
+    s = sigma();
     total = 0.0;
-    above = 0;
-    for d in diffs {
-        total += d;
-        if d > CFG["noise"] { above += 1; }
+    i = 0;
+    while i < draws {
+        k = sample_index(probs);
+        y = mu[k] + random.gauss(0.0, s);
+        dens = 0.0;
+        for (m, w) in zip(mu, probs) {
+            dens += w * math.exp(-0.5 * ((y - m) / s) ** 2);
+        }
+        if dens < 1e-300 { dens = 1e-300; }
+        total += -math.log2(dens);
+        i += 1;
     }
-    return {"n": n, "median": diffs[n // 2], "mean": total / n,
-            "max": diffs[n - 1], "frac_above_noise": above / n,
-            "ok": diffs[n // 2] > CFG["noise"]};
+    return total / draws;
 }
 
-def rank_desc(post: dict) -> list {
-    "Candidates ordered by descending posterior probability. Avoids lambda syntax entirely.";
-    items = [];
-    for k in post.keys() {
-        items.append((post[k], k));
+def sample_index(probs: list) -> int {
+    r = random.random();
+    acc = 0.0;
+    for (i, p) in enumerate(probs) {
+        acc += p;
+        if r <= acc { return i; }
     }
-    items.sort();
-    items.reverse();
+    return len(probs) - 1;
+}
+
+
+
+walker TakeProbe {
+    """Applies one field measurement and updates belief on every hypothesis node."""
+    has location: str;
+    has reading: float;
+    has survivors: int = 0;
+    has entropy_bits: float = 0.0;
+    has top: str = "";
+    has top_prob: float = 0.0;
+
+    can apply with entry {
+        col = NODES.index(self.location);
+        hyps = of_type([-->], Hypothesis);
+        total = 0.0;
+        for h in hyps {
+            like = math.exp(-0.5 * ((self.reading - h.signature[col]) / sigma()) ** 2);
+            h.prob = h.prob * like;
+            total += h.prob;
+        }
+        if total <= 1e-300 {
+            # Every hypothesis contradicted. Fall back to the prior rather than
+            # invent a winner out of floating-point noise.
+            for h in hyps { h.prob = 1.0 / len(hyps); }
+        } else {
+            for h in hyps { h.prob = h.prob / total; }
+        }
+
+        for j in of_type([-->], Junction) {
+            if j.name == self.location {
+                j.measured = True;
+                j.reading_psi = self.reading;
+            }
+        }
+
+        ent = 0.0;
+        best = 0.0;
+        for h in hyps {
+            if h.prob > 0.0 { ent += -h.prob * math.log2(h.prob); }
+            if h.prob > best { best = h.prob; self.top = h.location; }
+        }
+        self.entropy_bits = ent;
+        self.top_prob = best;
+        self.survivors = len(credible_set(hyps, 0.90));
+    }
+}
+
+
+def credible_set(hyps: list, mass: float) -> list {
+    """Smallest set of hypotheses holding 'mass' of the belief.""";
+    pairs = [];
+    for h in hyps { pairs.append([h.prob, h.location]); }
+    pairs.sort(reverse=True);     # [prob, location] — prob leads
     out = [];
-    for it in items {
-        out.append(it[1]);
+    acc = 0.0;
+    for p in pairs {
+        out.append(p[1]);
+        acc += p[0];
+        if acc >= mass { break; }
     }
     return out;
 }
 
-def set_leak(v: float) -> None {
-    "Mutate the config dict. Rebinding a glob inside a scope would silently create a local.";
-    CFG["leak_gpm"] = v;
+# ------------------------------------------------------------- identifiability
+
+
+# ------------------------------------------------------- non-circularity evidence
+glob DIVERGENCE: dict = {"n": 0, "sum": 0.0, "worst": 1e9, "cleared": 0};
+
+walker CheckNonCircularity {
+    """Proves the diagnosis is not inverting its own simulator.
+
+    StageIncident draws the crew's readings from a perturbed model. That defence is
+    only real if the perturbed residual actually departs from the nominal forward
+    model by more than gauge noise. If it does not, the perturbation is cosmetic and
+    the whole evaluation is circular. This measures the gap instead of asserting it.
+    """
+    has truth: str;
+    has median: float = 0.0;
+    has worst: float = 0.0;
+    has cleared: float = 0.0;
+
+    can check with entry {
+        sig = [];
+        for h in of_type([-->], Hypothesis) {
+            if h.location == self.truth { sig = h.signature; }
+        }
+        if len(sig) == 0 { disengage; }
+        diffs = [];
+        for (i, j) in enumerate(NODES) {
+            diffs.append(abs(OBSERVED[j] - sig[i]));
+        }
+        diffs.sort();
+        n = len(diffs);
+        above = 0;
+        for d in diffs { if d > GAUGE_NOISE { above += 1; } }
+        self.median = diffs[n // 2];
+        self.worst = diffs[0];
+        self.cleared = above / n;
+        DIVERGENCE["n"] += 1;
+        DIVERGENCE["sum"] += self.median;
+        DIVERGENCE["cleared"] += self.cleared;
+        if self.median < DIVERGENCE["worst"] { DIVERGENCE["worst"] = self.median; }
+    }
 }

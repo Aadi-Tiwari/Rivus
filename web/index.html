@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivus — find the leak without guessing</title>
+<style>
+  :root{
+    --bg:#04070C; --rule:#152232; --ink:#E6F0F8; --ink2:#93A9BD; --ink3:#5B7085;
+    --wave:#3E7FB8; --wave2:#8FC4E8; --foam:#E8F2FA; --mint:#35D6A0; --alarm:#FF6B4A;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;
+       -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+  a{color:inherit;text-decoration:none}
+
+  #swell{position:fixed;inset:0;width:100%;height:100vh;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 40px}
+
+  nav{display:flex;align-items:center;gap:13px;padding:26px 0}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px}
+  .glyph i:nth-child(1){left:0;top:5px;background:var(--mint);opacity:.55}
+  .glyph i:nth-child(2){left:5px;top:0;background:var(--wave2)}
+  .glyph i:nth-child(3){left:10px;top:8px;background:var(--mint);opacity:.85}
+  .brand{font-size:15px}
+  .grow{flex:1}
+  nav .links{display:flex;gap:28px;font-size:11px;letter-spacing:.16em;color:var(--ink3)}
+  nav .links a:hover{color:var(--ink)}
+
+  .hero{min-height:calc(100vh - 90px);display:flex;flex-direction:column;
+        align-items:center;justify-content:center;text-align:center;padding-bottom:70px}
+  .pill{display:inline-flex;align-items:center;gap:9px;padding:6px 15px;
+        border:1px solid var(--rule);border-radius:20px;font-size:10.5px;
+        letter-spacing:.15em;color:var(--ink2);background:rgba(4,7,12,.6)}
+  .pill s{width:6px;height:6px;border-radius:50%;background:var(--mint);
+          text-decoration:none;box-shadow:0 0 9px var(--mint)}
+  .hero h1{font-family:var(--disp);font-size:clamp(44px,7vw,86px);line-height:1.03;
+           font-weight:400;letter-spacing:-.022em;margin:30px 0 0}
+  .hero h1 em{font-style:italic;color:var(--foam)}
+  .hero p{font-size:13px;line-height:1.85;color:var(--ink2);max-width:52ch;margin:26px auto 0}
+  .cta{display:inline-block;margin-top:38px;padding:15px 30px;font-size:11.5px;
+       letter-spacing:.19em;color:#04120C;background:var(--mint);
+       clip-path:polygon(0 0,100% 0,100% 72%,calc(100% - 13px) 100%,0 100%);
+       transition:transform .16s,box-shadow .16s}
+  .cta:hover{transform:translateY(-2px);box-shadow:0 10px 34px rgba(53,214,160,.28)}
+  .scrollnote{margin-top:40px;font-size:10px;letter-spacing:.2em;color:var(--ink3)}
+
+  section{padding:96px 0;border-top:1px solid var(--rule)}
+  h2{font-size:10.5px;letter-spacing:.2em;color:var(--mint);margin-bottom:26px}
+  .lede{font-family:var(--disp);font-size:clamp(25px,2.9vw,38px);line-height:1.22;
+        font-weight:400;letter-spacing:-.014em;max-width:19ch}
+  .lede em{font-style:italic;color:var(--wave2)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:34px}
+  .cols p{font-size:13px;line-height:1.85;color:var(--ink2)}
+  .cols p+p{margin-top:17px}
+  .cols b{color:var(--ink);font-weight:400}
+  .cols u{text-decoration:none;color:var(--mint)}
+
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+         margin-top:44px;border:1px solid var(--rule)}
+  .step{background:var(--bg);padding:24px 20px}
+  .step .n{font-family:var(--disp);font-size:31px;color:var(--wave2);line-height:1}
+  .step h3{font-size:12px;letter-spacing:.05em;margin:13px 0 9px;font-weight:400}
+  .step p{font-size:11.5px;line-height:1.65;color:var(--ink3)}
+
+  .figures{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);
+           border:1px solid var(--rule);margin-top:34px}
+  .fg{background:var(--bg);padding:26px 22px}
+  .fg .v{font-family:var(--disp);font-size:42px;line-height:1}
+  .fg .v.good{color:var(--mint)} .fg .v.flat{color:var(--ink3)}
+  .fg .l{font-size:11px;color:var(--ink3);margin-top:11px;line-height:1.6}
+
+  .limit{border-left:2px solid var(--alarm);padding-left:22px;margin-top:34px;
+         max-width:70ch}
+  .limit p{font-size:13px;line-height:1.85;color:var(--ink2)}
+  .limit b{color:var(--ink);font-weight:400}
+
+  footer{border-top:1px solid var(--rule);padding:34px 0 50px;display:flex;
+         justify-content:space-between;font-size:10.5px;color:var(--ink3);
+         letter-spacing:.06em}
+  @media(max-width:880px){.cols,.steps,.figures{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<canvas id="swell"></canvas>
+
+<div class="wrap">
+  <nav>
+    <div class="glyph"><i></i><i></i><i></i></div>
+    <div class="brand">Rivus</div>
+    <div class="grow"></div>
+    <div class="links">
+      <a href="#method">METHOD</a><a href="#results">RESULTS</a><a href="#limits">LIMITS</a>
+      <a href="board.html" style="color:var(--mint)">LIVE BOARD</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <span class="pill"><s></s>35 JUNCTIONS · 40 PIPES · 36 HYDRAULIC RUNS IN 0.23S</span>
+    <h1>Find the leak<br>without <em>guessing</em></h1>
+    <p>Bayesian leak localisation over live pressure gauges. Rivus reports a credible set
+       and the bits it is still missing — never a single pipe it cannot prove.</p>
+    <a class="cta" href="board.html">[ RUN A DIAGNOSIS ]</a>
+    <div class="scrollnote">SCROLL FOR METHOD</div>
+  </div>
+
+  <section id="method">
+    <h2>METHOD</h2>
+    <div class="lede">Twenty questions,<br>for <em>pipes</em>.</div>
+    <div class="cols">
+      <div>
+        <p>A main has cracked somewhere under the district. The utility knows water is
+           leaving — more goes in than comes out of taps — but not where. <b>Thirty-five
+           junctions</b> could be responsible.</p>
+        <p>Checking one means two people, a truck and a pressure gauge: about an hour.
+           Opening the wrong street costs roughly <b>twenty thousand dollars</b>.</p>
+      </div>
+      <div>
+        <p>Rivus simulates a leak at every junction using the EPA's hydraulic engine —
+           <u>thirty-six runs in a fifth of a second</u> — and each possible break leaves a
+           different fingerprint of pressure drops.</p>
+        <p>Then it does the part nobody else does: it names <b>the single hydrant whose
+           reading will eliminate the most suspects</b>, and updates the moment the crew
+           reports back.</p>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Simulate every suspect</h3>
+        <p>One hydraulic run per candidate junction. A leak anywhere moves pressure
+           everywhere, so one run scores every possible gauge at once.</p></div>
+      <div class="step"><div class="n">02</div><h3>Choose the next reading</h3>
+        <p>Every candidate hydrant is scored by expected information gain, weighed against
+           the crew-hours it costs to get there.</p></div>
+      <div class="step"><div class="n">03</div><h3>Say what cannot be known</h3>
+        <p>Junctions on the same run of pipe are hydraulically identical. Rivus names those
+           pairs instead of picking a confident winner.</p></div>
+      <div class="step"><div class="n">04</div><h3>Screen the shutdown</h3>
+        <p>Every valve plan is checked twice — graph reachability and a pressure-dependent
+           run — before anyone closes anything.</p></div>
+    </div>
+  </section>
+
+  <section id="results">
+    <h2>RESULTS · MEASURED AGAINST A RANDOM CONTROL</h2>
+    <div class="lede">We tested ourselves<br>against <em>chance</em>.</div>
+    <div class="figures">
+      <div class="fg"><div class="v good">3.6×</div>
+        <div class="l">better than random probing at finding the exact junction, on a
+          92-junction district. 19.6% against 5.4%.</div></div>
+      <div class="fg"><div class="v good">37%</div>
+        <div class="l">less street to search. Mean distance from the crew's leading
+          candidate to the actual break falls from 6.27 hops to 3.98.</div></div>
+      <div class="fg"><div class="v flat">0</div>
+        <div class="l">measurable advantage on the 35-junction network, where 179 of 210
+          candidate pairs are physically indistinguishable. We report that too.</div></div>
+    </div>
+    <div class="limit">
+      <p>Our first figure was <b>43% closer</b>. A teammate built a non-circularity test
+         that proved the setup was marking its own homework — the evidence differed from
+         our own model by 0.04 psi against a 0.35 psi noise floor. <b>We withdrew the
+         claim.</b> Everything above is what survived, across 105 incidents per arm, with
+         the random control still in.</p>
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2>LIMITS</h2>
+    <div class="lede">What we <em>don't</em> know,<br>on the record.</div>
+    <div class="cols">
+      <div>
+        <p><b>The exact pipe is found about 10–20% of the time.</b> Rivus reports a credible
+           set. Top-1 is not a call it makes.</p>
+        <p><b>It needs a network with structure.</b> On a small, hydraulically degenerate
+           district it is no better than guessing, and it says so.</p>
+      </div>
+      <div>
+        <p><b>Shutdown screening is modelled service impact, not a safety certification.</b>
+           An operator decides.</p>
+        <p><b>The sample networks are EPA references</b>, not a utility's own calibrated
+           model. The engine reads standard EPANET files, so a real one drops straight in.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>RIVUS · BUILT AT JACHACKS SF · 26 JULY 2026</span>
+    <span>EPA EPANET · JAC WALKERS OVER THE PIPE GRAPH · 96% JAC</span>
+  </footer>
+</div>
+
+<script>
+// the same halftone swell the board uses, so the two pages read as one product
+const cv=document.getElementById('swell'),cx=cv.getContext('2d');
+const t0=performance.now();
+function frame(){
+  const w=cv.width=innerWidth,h=cv.height=innerHeight,t=(performance.now()-t0)/9000,gap=13;
+  cx.clearRect(0,0,w,h);
+  for(let y=0;y<h;y+=gap)for(let x=0;x<w;x+=gap){
+    const u=x/w,v=y/h;
+    const a=Math.sin(u*5.2+t*1.3+Math.cos(v*3.1+t*.7)*1.5);
+    const b=Math.sin(u*2.4-t*.9+v*4.6);
+    const n=a*.65+b*.35, band=Math.max(0,n);
+    const fall=Math.pow(1-v,1.45)*Math.min(1,u*1.6+.15);
+    const r=band*fall*3.2;
+    if(r>.22){
+      const k=Math.min(1,band*fall*1.5);
+      cx.fillStyle=`rgba(${Math.round(62+180*k)},${Math.round(127+120*k)},${Math.round(184+66*k)},${(.09+k*.5).toFixed(3)})`;
+      cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches) frame();
+else {cv.width=innerWidth;cv.height=innerHeight;}
+addEventListener('resize',()=>{cv.width=innerWidth;cv.height=innerHeight});
+</script>
+</body>
+</html>

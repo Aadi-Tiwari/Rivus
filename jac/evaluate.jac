@@ -1,139 +1,92 @@
-include simulate;
-import from hydraulics { topology, run }
+"""Honest measurement.
 
-def hop_table(junctions: list, pipes: list) -> dict {
-    "All-pairs hop distance by breadth-first search over the pipe topology.";
-    adj = {};
-    for j in junctions { adj[j] = []; }
-    for p in pipes {
-        a = p["from"]; b = p["to"];
-        if a in adj and b in adj {
-            adj[a].append(b);
-            adj[b].append(a);
-        }
-    }
-    table = {};
-    for src in junctions {
-        dist = {src: 0};
-        frontier = [src];
-        while len(frontier) > 0 {
-            nxt = [];
-            for u in frontier {
-                for v in adj[u] {
-                    if v not in dist {
-                        dist[v] = dist[u] + 1;
-                        nxt.append(v);
-                    }
-                }
-            }
-            frontier = nxt;
-        }
-        table[src] = dist;
-    }
-    return table;
-}
+Sweeps every possible hidden leak location and runs the full probing loop on each,
+three ways: maximum information gain, information per crew-hour, and random probing as
+a control. A claim that "choosing probes well helps" means nothing without the control,
+so the control is not optional here.
 
-def hops(table: dict, a: str, b: str) -> int {
-    "Hop distance, with a fixed penalty when the two sit in disconnected components.";
-    if a in table and b in table[a] { return table[a][b]; }
-    return 9;
-}
+    jac run jac/evaluate.jac
+"""
 
-def pick_random(remaining: list, state: int) -> tuple {
-    "Control arm: choose the next gauge uniformly at random.";
-    pair = lcg_unit(state);
-    idx = int(pair[0] * len(remaining));
-    if idx >= len(remaining) { idx = len(remaining) - 1; }
-    return (remaining[idx], pair[1]);
-}
+include harness;
 
-def pick_best(remaining: list, post: dict, model: dict, cands: list,
-              readings: dict, seen: list) -> tuple {
-    "Treatment arm: choose the gauge with the highest expected information gain.";
-    best = ""; bestv = -1.0;
-    for g in remaining {
-        v = expected_information(g, post, model, cands, readings, seen);
-        if v > bestv { bestv = v; best = g; }
-    }
-    return (best, bestv);
-}
 
-def run_arm(arm: str, budget: int, threshold: float, truth: str, gauges: list,
-            model: dict, cands: list, readings: dict, state: int) -> dict {
-    "Run one probing policy on one incident. Returns rank of truth and probes spent.";
-    seen = []; remaining = [];
-    for g in gauges { remaining.append(g); }
-    s = state;
-    while len(seen) < budget and len(remaining) > 0 {
-        post = posterior(readings, model, cands, seen);
-        if arm == "random" {
-            pr = pick_random(remaining, s);
-            pick = pr[0]; s = pr[1];
-        } else {
-            pr = pick_best(remaining, post, model, cands, readings, seen);
-            pick = pr[0];
-            if arm == "adaptive" and pr[1] < threshold { break; }
-        }
-        seen.append(pick);
-        remaining.remove(pick);
-    }
-    post = posterior(readings, model, cands, seen);
-    r = rank_desc(post);
-    return {"rank": r.index(truth) + 1, "top": r[0], "probes": len(seen)};
-}
+glob EVAL_SEEDS: int = 3;     # 35 locations x 3 seeds = 105 incidents per arm
+
 
 with entry {
-    t = topology();
-    cands = t["junctions"]; gauges = t["gauges"];
-    pids = []; for pp in t["pipes"] { pids.append(pp["id"]); }
-    tbl = hop_table(cands, t["pipes"]);
-    set_leak(400.0);
-    CFG["model_sigma"] = 1.30;
-    model = build_forward_model(cands);
-    seeds = [1, 2, 3];
+    for n in [root-->] { del n; }
+    ing = root spawn IngestNetwork();
+    fm = root spawn BuildForwardModel();
+    juncs = of_type([root-->], Junction);
 
-    ds = 0.0; ok = 0; nn = 0; worst = 1.0e9;
-    for seed in seeds {
-        for c in cands {
-            inc = stage_incident(c, gauges, pids, seed);
-            d = divergence_stats(model[c], inc["perturbed"], gauges);
-            ds += d["median"];
-            if d["median"] < worst { worst = d["median"]; }
-            if d["ok"] { ok += 1; }
-            nn += 1;
+    print(f"\nPipeTrace evaluation");
+    print(f"  {len(NODES)} junctions, every one used as a hidden leak in turn");
+    print(f"  sigma {sigma():.2f} psi, truth model perturbed "
+          f"(demand {DEMAND_CV:.0%} CV, roughness {ROUGH_CV:.0%} CV)");
+    print(f"  3 probes per incident, {EVAL_DRAWS} Monte Carlo draws, {EVAL_SEEDS} seeds\n");
+
+    arms = ["info", "cost", "adaptive", "random"];
+    labels = {"info": "max information gain", "cost": "bits per crew-hour",
+              "adaptive": "adaptive stopping", "random": "random probes (control)"};
+    stats = {};
+    for a in arms { stats[a] = [0, 0, 0, 0, 0.0, 0, 0]; }  # n, top1, top3, top5, hops, crew, probes
+
+    idx = 0;
+    rep = 0;
+    while rep < EVAL_SEEDS {
+      for truth in NODES {
+        root spawn StageIncident(truth=truth, seed=1000 + rep * 977 + idx);
+        root spawn CheckNonCircularity(truth=truth);
+        for a in arms {
+            r = root spawn RunArm(truth=truth, arm=a);
+            s = stats[a];
+            s[0] += 1;
+            if r.rank == 1 { s[1] += 1; }
+            if r.rank <= 3 { s[2] += 1; }
+            if r.rank <= 5 { s[3] += 1; }
+            s[4] += r.hops;
+            s[5] += int(r.crew_min);
+            s[6] += r.spent;
         }
+        idx += 1;
+        if idx % 20 == 0 { print(f"  ... {idx}/{EVAL_SEEDS * len(NODES)} incidents"); }
+      }
+      rep += 1;
     }
-    print("NON-CIRCULARITY GATE (perturbed truth vs nominal model, noise floor", CFG["noise"], "psi)");
-    print("   median divergence", round(ds / nn, 3), "psi | worst incident", round(worst, 3),
-          "psi | incidents clearing noise", round(100.0 * ok / nn, 1), "percent");
-    if worst <= CFG["noise"] {
-        print("   GATE WARNING: at least one incident does not clear the noise floor.");
-    } else {
-        print("   GATE PASS: every incident diverges by more than gauge noise.");
-    }
+
+    dv = DIVERGENCE;
+    med = dv["sum"] / dv["n"];
+    frac = 100.0 * dv["cleared"] / dv["n"];
     print("");
-    print("arm            exact%  top5%  mean_hops  mean_probes   n");
-    arms = [("random", 3, 0.0), ("max-infogain", 3, 0.0),
-            ("adaptive", 8, 0.03), ("all-gauges", 8, 0.0)];
-    for a in arms {
-        name = a[0]; budget = a[1]; th = a[2];
-        mode = name;
-        if name == "all-gauges" { mode = "best"; }
-        if name == "max-infogain" { mode = "best"; }
-        hit = 0; t5 = 0; hp = 0; pb = 0; n = 0; st = 991;
-        for seed in seeds {
-            for c in cands {
-                inc = stage_incident(c, gauges, pids, seed);
-                res = run_arm(mode if name != "adaptive" else "adaptive",
-                              budget, th, c, gauges, model, cands, inc["readings"], st);
-                st = lcg_next(st);
-                if res["rank"] == 1 { hit += 1; }
-                if res["rank"] <= 5 { t5 += 1; }
-                hp += hops(tbl, res["top"], c);
-                pb += res["probes"]; n += 1;
-            }
-        }
-        print("  ", name.ljust(13), round(100.0*hit/n,1), "  ", round(100.0*t5/n,1),
-              "  ", round(hp/n,2), "  ", round(pb/n,2), "  ", n);
+    print("  non-circularity gate: perturbed truth departs from the nominal model by",
+          round(med, 2), "psi median, worst incident", round(dv["worst"], 2),
+          "psi, against", GAUGE_NOISE, "psi gauge noise;", round(frac, 0),
+          "percent of gauges clear the floor");
+    if dv["worst"] <= GAUGE_NOISE {
+        print("  GATE WARNING: at least one incident does not clear gauge noise.");
+    } else {
+        print("  GATE PASS: every incident diverges by more than gauge noise.");
     }
+
+    print(f"\n  after 3 probes ({stats['info'][0]} incidents per arm):");
+    for a in arms {
+        s = stats[a];
+        n = s[0];
+        print(f"  {labels[a]:<26} top-1 {100.0 * s[1] / n:5.1f}%   "
+              f"top-3 {100.0 * s[2] / n:5.1f}%   top-5 {100.0 * s[3] / n:5.1f}%   "
+              f"mean {s[4] / n:.2f} hops   {s[5] / n:.0f} crew-min   "
+              f"{s[6] / n:.1f} probes");
+    }
+    i = stats["info"];
+    c = stats["cost"];
+    d = stats["random"];
+    lift = (1.0 - (i[4] / i[0]) / (d[4] / d[0])) * 100.0;
+    print(f"\n  search distance {i[4] / i[0]:.2f} hops vs {d[4] / d[0]:.2f} random "
+          f"-> {lift:.0f}% closer");
+    print(f"  cost-aware saves {(d[5] - c[5]) / d[0]:.0f} crew-min per incident against "
+          f"random and {(i[5] - c[5]) / i[0]:.0f} against max-info, and gives up "
+          f"{(c[4] - i[4]) / c[0]:.2f} hops. That is a real tradeoff, not a free win.");
+    print(f"  exact junction identified {100.0 * i[1] / i[0]:.0f}% of the time at best. "
+          f"PipeTrace never claims to find the pipe.\n");
 }
