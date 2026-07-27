@@ -6,6 +6,7 @@ web/trace.json so the map renders measured state rather than a scripted sequence
 
 include graphops;
 import json;
+import from pages { INDEX_HTML, BOARD_HTML, write_page }
 
 
 def reconcile(c: dict) -> str {
@@ -187,11 +188,14 @@ with entry {
     with open("web/trace.js", "w") as f {
         f.write("window.TRACE = " + json.dumps(trace) + ";");
     }
+    # the two pages are emitted from pages.jac, so the board that ships is the board
+    # this run wrote and never a stale file on disk
+    write_page("web/index.html", INDEX_HTML);
+    write_page("web/board.html", BOARD_HTML);
     # and a single hostable file with the trace inlined, for deployment
-    with open("web/board.html") as src { page = src.read(); }
-    page = page.replace('<script src="trace.js"></script>',
+    page = BOARD_HTML.replace('<script src="trace.js"></script>',
                         "<script>window.TRACE = " + json.dumps(trace) + ";</script>");
-    with open("web/standalone.html", "w") as f { f.write(page); }
+    write_page("web/standalone.html", page);
     print(f"\n[export] web/trace.json written: {len(trace['nodes'])} nodes, "
           f"{len(trace['pipes'])} pipes, {len(trace['steps'])} probe states");
     print("Every number above came from EPANET and Bayes. The graph decided where to look.");

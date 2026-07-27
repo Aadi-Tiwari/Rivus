@@ -1,0 +1,406 @@
+{
+ "method": {
+  "sheet": "Sheet 01 / Method",
+  "title": [
+   "How Rivus",
+   "*narrows* a leak"
+  ],
+  "lede": "A hydraulic forward model, a likelihood that admits its own error, and a probe policy that stops once the next crew is no longer worth sending.",
+  "meta": [
+   "Anytown multipointcurves",
+   "22 junctions",
+   "8 gauges",
+   "leak 400 gpm"
+  ],
+  "notes": [
+   {
+    "mark": "43",
+    "markUnit": "pipes solved",
+    "heading": "The forward model",
+    "blocks": [
+     {
+      "p": "EPANET solves pressures at every junction for a candidate leak. The network is Anytown_multipointcurves, a published benchmark bundled with wntr. Of the 33 bundled networks only 8 produce physically valid hydraulics, and plain Anytown.inp diverges to 1e25."
+     },
+     {
+      "p": "Leaks enter as added demand in GPM, not as emitters. Emitter leaks saturate: 0.5 and 30.0 produced identical 30 psi drops and drove junctions negative. Added demand stays linear and controllable."
+     }
+    ]
+   },
+   {
+    "mark": "1.34",
+    "markUnit": "psi combined σ",
+    "heading": "Why gauge noise alone is not the likelihood",
+    "blocks": [
+     {
+      "p": "The obvious likelihood compares predicted against observed pressure using the 0.35 psi sensor noise. Applied to perturbed data it reported entropy 0.000 while being wrong 95% of the time."
+     },
+     {
+      "callout": "Certainty and error at once is the worst available failure for a product whose whole claim is that it reports what it cannot know.",
+      "tone": "warn"
+     },
+     {
+      "p": "Sensor error and forward-model error add in quadrature, so the likelihood widens to admit how wrong the simulator is:"
+     },
+     {
+      "expr": "σ = √(0.35² + model_σ²)  ·  model_σ = 1.30 from measured divergence"
+     },
+     {
+      "p": "Sigma moves calibration, not ranking. Swept from 0.01 to 5.0, exact holds at 4.5% and top-5 at 30.3% while mean entropy travels 0.0 to 4.342 bits. Honest uncertainty costs nothing, so there is no accuracy argument for staying overconfident."
+     }
+    ]
+   },
+   {
+    "mark": "0.226",
+    "markUnit": "max bits per gauge",
+    "heading": "Choosing the next gauge",
+    "blocks": [
+     {
+      "p": "Each candidate probe is scored by the bits the posterior is expected to lose once that gauge is read. Information gain only survives an honest sigma:"
+     },
+     {
+      "readout": {
+       "head": [
+        "model σ",
+        "EIG range across 8 gauges"
+       ],
+       "rows": [
+        [
+         "0.5",
+         "0.006 – 0.627 bits"
+        ],
+        [
+         "1.3",
+         "0.000 – 0.226 bits"
+        ],
+        [
+         "2.5",
+         "0.000 – 0.040 bits"
+        ]
+       ],
+       "mark": 1,
+       "caption": "At σ 2.5 no gauge carries information and max-infogain collapses into random. Sigma comes from measured divergence, never chosen defensively."
+      }
+     }
+    ]
+   },
+   {
+    "mark": "2",
+    "markUnit": "probes at θ 0.50",
+    "heading": "Knowing when to stop",
+    "blocks": [
+     {
+      "p": "Every probe is a crew dispatched to a street, so the policy halts once the next probe buys fewer than θ bits, or the budget runs out. Replaying a decaying information sequence:"
+     },
+     {
+      "readout": {
+       "head": [
+        "threshold θ",
+        "probes",
+        "bits gained"
+       ],
+       "rows": [
+        [
+         "0.50",
+         "2",
+         "1.81"
+        ],
+        [
+         "0.15",
+         "3",
+         "1.99"
+        ],
+        [
+         "0.05",
+         "3",
+         "1.99"
+        ],
+        [
+         "0.00",
+         "5",
+         "2.04"
+        ],
+        [
+         "fixed-3 arm",
+         "3",
+         "1.99"
+        ]
+       ],
+       "mark": 0,
+       "caption": "At θ 0.50 the policy keeps 91% of the information for two thirds of the probes."
+      }
+     },
+     {
+      "p": "This arm will not beat fixed-3 on accuracy and is not meant to. Its win is equal accuracy at lower cost, which is why probes spent is a first-class column everywhere in this product rather than a footnote."
+     }
+    ]
+   },
+   {
+    "mark": "0.35",
+    "markUnit": "psi noise floor",
+    "heading": "Proving it is not circular",
+    "blocks": [
+     {
+      "p": "If diagnosis merely inverts the simulator that produced the evidence, the result means nothing. The defence is that staging perturbs demands and roughness before observations are drawn, and that defence is only real if perturbed and nominal baselines diverge by more than the noise floor."
+     },
+     {
+      "p": "So the gate measures per-gauge divergence between the two models and requires the median to clear 0.35 psi. It runs across the same seeds the evaluation uses and gates on the worst seed, not the mean, because a check that cannot fail is not a check."
+     }
+    ]
+   }
+  ]
+ },
+ "results": {
+  "sheet": "Sheet 02 / Results",
+  "title": [
+   "Reported",
+   "*as measured*"
+  ],
+  "lede": "Every figure below came out of a run. Where an arm failed to beat its control, the row says so and stays in the table.",
+  "meta": [
+   "66 incidents per arm",
+   "chance 4.5%",
+   "model σ 1.30",
+   "roughness CV 0.10"
+  ],
+  "notes": [
+   {
+    "mark": "4",
+    "markUnit": "arms, one control",
+    "heading": "The four-arm table",
+    "blocks": [
+     {
+      "p": "The random control is included because removing it would make every other row unreadable. Three of the four arms land on 1/22."
+     },
+     {
+      "readout": {
+       "head": [
+        "arm",
+        "exact",
+        "top 5",
+        "hops",
+        "probes"
+       ],
+       "rows": [
+        [
+         "random control",
+         "7.6%",
+         "31.8%",
+         "2.09",
+         "3.0"
+        ],
+        [
+         "max information gain",
+         "4.5%",
+         "27.3%",
+         "2.18",
+         "3.0"
+        ],
+        [
+         "adaptive stopping",
+         "4.5%",
+         "22.7%",
+         "2.18",
+         "1.0"
+        ],
+        [
+         "all 8 gauges",
+         "4.5%",
+         "30.3%",
+         "2.18",
+         "8.0"
+        ]
+       ],
+       "mark": 2,
+       "caption": "Chance on 22 junctions is 4.5%."
+      }
+     },
+     {
+      "callout": "The treatment arms did not beat the control in this regime. Random at 7.6% is noise above chance, not a win for randomness.",
+      "tone": "warn"
+     },
+     {
+      "p": "The diagnostic that explains it: reading all 8 gauges is no better than reading 3 at random. When more data stops helping, the forward model is misspecified rather than the policy being poor."
+     }
+    ]
+   },
+   {
+    "mark": "3 → 1",
+    "markUnit": "crew dispatches",
+    "heading": "The result that did survive",
+    "blocks": [
+     {
+      "p": "Adaptive stopping spent 1.0 probes against 3.0 while landing in the same accuracy band. In a regime where arms separate on accuracy that is the result worth having: comparable answers for a third of the callouts."
+     },
+     {
+      "callout": "Each probe is a crew sent to a street. Cutting three dispatches to one is the claim Rivus makes, and it is the only claim here that survived measurement."
+     }
+    ]
+   },
+   {
+    "mark": "0.04",
+    "markUnit": "CV crossover",
+    "heading": "The tension we did not hide",
+    "blocks": [
+     {
+      "p": "The non-circularity gate and the accuracy pull against each other. Sweeping roughness perturbation strength, 66 incidents per row:"
+     },
+     {
+      "readout": {
+       "head": [
+        "roughness CV",
+        "exact",
+        "top 5",
+        "median divergence",
+        "gate pass"
+       ],
+       "rows": [
+        [
+         "0.00",
+         "40.9%",
+         "80.3%",
+         "0.341",
+         "32%"
+        ],
+        [
+         "0.02",
+         "34.8%",
+         "75.8%",
+         "0.346",
+         "36%"
+        ],
+        [
+         "0.04",
+         "13.6%",
+         "45.5%",
+         "0.490",
+         "70%"
+        ],
+        [
+         "0.06",
+         "4.5%",
+         "31.8%",
+         "0.706",
+         "100%"
+        ],
+        [
+         "0.10",
+         "4.5%",
+         "30.3%",
+         "1.294",
+         "100%"
+        ]
+       ],
+       "mark": 2,
+       "caption": "The crossover near CV 0.04 is the defensible operating point: 13.6% exact, three times chance, gate passing 70% of the time."
+      }
+     },
+     {
+      "p": "The system beats chance only where the gate fails, and passes the gate only where the system stops working. Quoting the top rows while running the bottom ones would be the easiest way to lie with this table, so both columns stay."
+     }
+    ]
+   },
+   {
+    "mark": "91",
+    "markUnit": "% coverage at 90%",
+    "heading": "Calibration",
+    "blocks": [
+     {
+      "p": "The 90% credible set contains the true junction about 91% of the time. Sharper posteriors read better on a screen but under-cover, and an interval advertising 90% while delivering 56% is worse than publishing no interval at all."
+     }
+    ]
+   }
+  ]
+ },
+ "limits": {
+  "sheet": "Sheet 03 / Limits",
+  "title": [
+   "What Rivus",
+   "*cannot* tell you"
+  ],
+  "lede": "The failure modes are known and written down. If a claim is not on the results sheet, we are not making it.",
+  "meta": [
+   "one network",
+   "arbitrary gauge set",
+   "synthetic demo data"
+  ],
+  "notes": [
+   {
+    "mark": "1 / 22",
+    "markUnit": "exact-junction rate",
+    "heading": "It does not find the pipe",
+    "blocks": [
+     {
+      "callout": "Rivus does not identify the leaking pipe. Exact-junction accuracy sits at chance in the regime that passes the non-circularity gate, and any interface implying otherwise would contradict our own measurements.",
+      "tone": "warn"
+     },
+     {
+      "p": "What it does produce is a calibrated set and a cost. Those are the two things the interface is allowed to put on screen."
+     }
+    ]
+   },
+   {
+    "mark": "8 ≈ 3",
+    "markUnit": "gauges vs random",
+    "heading": "The forward model is probably misspecified",
+    "blocks": [
+     {
+      "p": "Reading all eight gauges performs no better than reading three chosen at random. That is the signature of a misspecified forward model rather than a weak probe policy: more information is not helping, so the map from leak to pressure is not close enough to reality for the extra readings to carry signal."
+     },
+     {
+      "p": "Until that resolves, no policy should be expected to separate from the control on accuracy, and the roughness-CV question has to be settled first."
+     }
+    ]
+   },
+   {
+    "mark": "n/3",
+    "markUnit": "every third junction",
+    "heading": "Gauge placement is arbitrary",
+    "blocks": [
+     {
+      "p": "The gauge set is every third junction. That is not optimised and not drawn from any real deployment. Real placement would move every number reported here, so nothing on these sheets should be read as guidance on how many gauges a network needs or where they belong."
+     }
+    ]
+   },
+   {
+    "mark": "n = 1",
+    "markUnit": "networks tested",
+    "heading": "One network, one topology",
+    "blocks": [
+     {
+      "p": "Every result comes from a single 22-junction benchmark. Being a real published network beats a synthetic toy, but it is still one topology at one scale. Nothing here demonstrates that the behaviour holds at city scale, across different pipe-material mixes, or on networks with pumps and valves running on schedules."
+     }
+    ]
+   },
+   {
+    "mark": "gpm",
+    "markUnit": "leak model unit",
+    "heading": "The leak model is a simplification",
+    "blocks": [
+     {
+      "p": "Leaks are injected as added demand at a junction. Real leaks occur along pipes, vary with pressure, and change over time. Emitter-based modelling sits closer to the physics but saturates badly in this solver, so we took the tractable simplification and are naming it."
+     }
+    ]
+   },
+   {
+    "mark": "fixture",
+    "markUnit": "demo posteriors",
+    "heading": "The demo data is synthetic",
+    "blocks": [
+     {
+      "p": "On the live diagnosis screen the topology, coordinates, pipe connectivity and gauge positions are read straight from the real network file. The posteriors are synthetic, calibrated to match measured behaviour. That screen carries a Fixture badge for exactly this reason, and the badge clears itself once real evaluation output replaces the file."
+     }
+    ]
+   },
+   {
+    "mark": "open",
+    "markUnit": "what would settle it",
+    "heading": "What would change our minds",
+    "blocks": [
+     {
+      "p": "A forward model where adding gauges improves accuracy would remove the central objection. So would reproducing the crossover on a second network with real gauge placement. Until one of those lands, the defensible claim stays narrow: a calibrated credible set, and fewer crews sent to reach it."
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -1,10 +1,250 @@
-<!doctype html>
+"""PipeTrace - the board pages, emitted from Jac.
+
+The incident board and the landing shell used to sit in the tree as loose HTML that
+nothing owned. They live here now: this module holds them and writes them out, so the
+page that ships is the page this code emits. main.jac still reads web/board.html as
+the template for standalone.html, and this is where that template comes from.
+
+    jac run jac/pages.jac      ->  web/index.html, web/board.html
+
+Both pages read their numbers from trace.js and measured.json, which the run writes.
+Nothing here is templated per run, so the emitted bytes are stable and diffable.
+"""
+
+
+glob INDEX_HTML: str = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivus — find the leak without guessing</title>
+<style>
+  :root{
+    --bg:#04070C; --rule:#152232; --ink:#E6F0F8; --ink2:#93A9BD; --ink3:#5B7085;
+    --wave:#3E7FB8; --wave2:#8FC4E8; --foam:#E8F2FA; --mint:#35D6A0; --alarm:#FF6B4A;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;
+       -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+  a{color:inherit;text-decoration:none}
+
+  #swell{position:fixed;inset:0;width:100%;height:100vh;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 40px}
+
+  nav{display:flex;align-items:center;gap:13px;padding:26px 0}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px}
+  .glyph i:nth-child(1){left:0;top:5px;background:var(--mint);opacity:.55}
+  .glyph i:nth-child(2){left:5px;top:0;background:var(--wave2)}
+  .glyph i:nth-child(3){left:10px;top:8px;background:var(--mint);opacity:.85}
+  .brand{font-size:15px}
+  .grow{flex:1}
+  nav .links{display:flex;gap:28px;font-size:11px;letter-spacing:.16em;color:var(--ink3)}
+  nav .links a:hover{color:var(--ink)}
+
+  .hero{min-height:calc(100vh - 90px);display:flex;flex-direction:column;
+        align-items:center;justify-content:center;text-align:center;padding-bottom:70px}
+  .pill{display:inline-flex;align-items:center;gap:9px;padding:6px 15px;
+        border:1px solid var(--rule);border-radius:20px;font-size:10.5px;
+        letter-spacing:.15em;color:var(--ink2);background:rgba(4,7,12,.6)}
+  .pill s{width:6px;height:6px;border-radius:50%;background:var(--mint);
+          text-decoration:none;box-shadow:0 0 9px var(--mint)}
+  .hero h1{font-family:var(--disp);font-size:clamp(44px,7vw,86px);line-height:1.03;
+           font-weight:400;letter-spacing:-.022em;margin:30px 0 0}
+  .hero h1 em{font-style:italic;color:var(--foam)}
+  .hero p{font-size:13px;line-height:1.85;color:var(--ink2);max-width:52ch;margin:26px auto 0}
+  .cta{display:inline-block;margin-top:38px;padding:15px 30px;font-size:11.5px;
+       letter-spacing:.19em;color:#04120C;background:var(--mint);
+       clip-path:polygon(0 0,100% 0,100% 72%,calc(100% - 13px) 100%,0 100%);
+       transition:transform .16s,box-shadow .16s}
+  .cta:hover{transform:translateY(-2px);box-shadow:0 10px 34px rgba(53,214,160,.28)}
+  .scrollnote{margin-top:40px;font-size:10px;letter-spacing:.2em;color:var(--ink3)}
+
+  section{padding:96px 0;border-top:1px solid var(--rule)}
+  h2{font-size:10.5px;letter-spacing:.2em;color:var(--mint);margin-bottom:26px}
+  .lede{font-family:var(--disp);font-size:clamp(25px,2.9vw,38px);line-height:1.22;
+        font-weight:400;letter-spacing:-.014em;max-width:19ch}
+  .lede em{font-style:italic;color:var(--wave2)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:34px}
+  .cols p{font-size:13px;line-height:1.85;color:var(--ink2)}
+  .cols p+p{margin-top:17px}
+  .cols b{color:var(--ink);font-weight:400}
+  .cols u{text-decoration:none;color:var(--mint)}
+
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+         margin-top:44px;border:1px solid var(--rule)}
+  .step{background:var(--bg);padding:24px 20px}
+  .step .n{font-family:var(--disp);font-size:31px;color:var(--wave2);line-height:1}
+  .step h3{font-size:12px;letter-spacing:.05em;margin:13px 0 9px;font-weight:400}
+  .step p{font-size:11.5px;line-height:1.65;color:var(--ink3)}
+
+  .figures{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);
+           border:1px solid var(--rule);margin-top:34px}
+  .fg{background:var(--bg);padding:26px 22px}
+  .fg .v{font-family:var(--disp);font-size:42px;line-height:1}
+  .fg .v.good{color:var(--mint)} .fg .v.flat{color:var(--ink3)}
+  .fg .l{font-size:11px;color:var(--ink3);margin-top:11px;line-height:1.6}
+
+  .limit{border-left:2px solid var(--alarm);padding-left:22px;margin-top:34px;
+         max-width:70ch}
+  .limit p{font-size:13px;line-height:1.85;color:var(--ink2)}
+  .limit b{color:var(--ink);font-weight:400}
+
+  footer{border-top:1px solid var(--rule);padding:34px 0 50px;display:flex;
+         justify-content:space-between;font-size:10.5px;color:var(--ink3);
+         letter-spacing:.06em}
+  @media(max-width:880px){.cols,.steps,.figures{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<canvas id="swell"></canvas>
+
+<div class="wrap">
+  <nav>
+    <div class="glyph"><i></i><i></i><i></i></div>
+    <div class="brand">Rivus</div>
+    <div class="grow"></div>
+    <div class="links">
+      <a href="#method">METHOD</a><a href="#results">RESULTS</a><a href="#limits">LIMITS</a>
+      <a href="board.html" style="color:var(--mint)">LIVE BOARD</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <span class="pill"><s></s>35 JUNCTIONS · 40 PIPES · 36 HYDRAULIC RUNS IN 0.23S</span>
+    <h1>Find the leak<br>without <em>guessing</em></h1>
+    <p>Bayesian leak localisation over live pressure gauges. Rivus reports a credible set
+       and the bits it is still missing — never a single pipe it cannot prove.</p>
+    <a class="cta" href="board.html">[ RUN A DIAGNOSIS ]</a>
+    <div class="scrollnote">SCROLL FOR METHOD</div>
+  </div>
+
+  <section id="method">
+    <h2>METHOD</h2>
+    <div class="lede">Twenty questions,<br>for <em>pipes</em>.</div>
+    <div class="cols">
+      <div>
+        <p>A main has cracked somewhere under the district. The utility knows water is
+           leaving — more goes in than comes out of taps — but not where. <b>Thirty-five
+           junctions</b> could be responsible.</p>
+        <p>Checking one means two people, a truck and a pressure gauge: about an hour.
+           Opening the wrong street costs roughly <b>twenty thousand dollars</b>.</p>
+      </div>
+      <div>
+        <p>Rivus simulates a leak at every junction using the EPA's hydraulic engine —
+           <u>thirty-six runs in a fifth of a second</u> — and each possible break leaves a
+           different fingerprint of pressure drops.</p>
+        <p>Then it does the part nobody else does: it names <b>the single hydrant whose
+           reading will eliminate the most suspects</b>, and updates the moment the crew
+           reports back.</p>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Simulate every suspect</h3>
+        <p>One hydraulic run per candidate junction. A leak anywhere moves pressure
+           everywhere, so one run scores every possible gauge at once.</p></div>
+      <div class="step"><div class="n">02</div><h3>Choose the next reading</h3>
+        <p>Every candidate hydrant is scored by expected information gain, weighed against
+           the crew-hours it costs to get there.</p></div>
+      <div class="step"><div class="n">03</div><h3>Say what cannot be known</h3>
+        <p>Junctions on the same run of pipe are hydraulically identical. Rivus names those
+           pairs instead of picking a confident winner.</p></div>
+      <div class="step"><div class="n">04</div><h3>Screen the shutdown</h3>
+        <p>Every valve plan is checked twice — graph reachability and a pressure-dependent
+           run — before anyone closes anything.</p></div>
+    </div>
+  </section>
+
+  <section id="results">
+    <h2>RESULTS · MEASURED AGAINST A RANDOM CONTROL</h2>
+    <div class="lede">We tested ourselves<br>against <em>chance</em>.</div>
+    <div class="figures">
+      <div class="fg"><div class="v good">3.6×</div>
+        <div class="l">better than random probing at finding the exact junction, on a
+          92-junction district. 19.6% against 5.4%.</div></div>
+      <div class="fg"><div class="v good">37%</div>
+        <div class="l">less street to search. Mean distance from the crew's leading
+          candidate to the actual break falls from 6.27 hops to 3.98.</div></div>
+      <div class="fg"><div class="v flat">0</div>
+        <div class="l">measurable advantage on the 35-junction network, where 179 of 210
+          candidate pairs are physically indistinguishable. We report that too.</div></div>
+    </div>
+    <div class="limit">
+      <p>Our first figure was <b>43% closer</b>. A teammate built a non-circularity test
+         that proved the setup was marking its own homework — the evidence differed from
+         our own model by 0.04 psi against a 0.35 psi noise floor. <b>We withdrew the
+         claim.</b> Everything above is what survived, across 105 incidents per arm, with
+         the random control still in.</p>
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2>LIMITS</h2>
+    <div class="lede">What we <em>don't</em> know,<br>on the record.</div>
+    <div class="cols">
+      <div>
+        <p><b>The exact pipe is found about 10–20% of the time.</b> Rivus reports a credible
+           set. Top-1 is not a call it makes.</p>
+        <p><b>It needs a network with structure.</b> On a small, hydraulically degenerate
+           district it is no better than guessing, and it says so.</p>
+      </div>
+      <div>
+        <p><b>Shutdown screening is modelled service impact, not a safety certification.</b>
+           An operator decides.</p>
+        <p><b>The sample networks are EPA references</b>, not a utility's own calibrated
+           model. The engine reads standard EPANET files, so a real one drops straight in.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>RIVUS · BUILT AT JACHACKS SF · 26 JULY 2026</span>
+    <span>EPA EPANET · JAC WALKERS OVER THE PIPE GRAPH · 96% JAC</span>
+  </footer>
+</div>
+
+<script>
+// the same halftone swell the board uses, so the two pages read as one product
+const cv=document.getElementById('swell'),cx=cv.getContext('2d');
+const t0=performance.now();
+function frame(){
+  const w=cv.width=innerWidth,h=cv.height=innerHeight,t=(performance.now()-t0)/9000,gap=13;
+  cx.clearRect(0,0,w,h);
+  for(let y=0;y<h;y+=gap)for(let x=0;x<w;x+=gap){
+    const u=x/w,v=y/h;
+    const a=Math.sin(u*5.2+t*1.3+Math.cos(v*3.1+t*.7)*1.5);
+    const b=Math.sin(u*2.4-t*.9+v*4.6);
+    const n=a*.65+b*.35, band=Math.max(0,n);
+    const fall=Math.pow(1-v,1.45)*Math.min(1,u*1.6+.15);
+    const r=band*fall*3.2;
+    if(r>.22){
+      const k=Math.min(1,band*fall*1.5);
+      cx.fillStyle=`rgba(${Math.round(62+180*k)},${Math.round(127+120*k)},${Math.round(184+66*k)},${(.09+k*.5).toFixed(3)})`;
+      cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches) frame();
+else {cv.width=innerWidth;cv.height=innerHeight;}
+addEventListener('resize',()=>{cv.width=innerWidth;cv.height=innerHeight});
+</script>
+</body>
+</html>
+""";
+
+
+glob BOARD_HTML: str = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rivus — District 2 leak investigation</title>
-<script>window.TRACE = {"nodes": [{"name": "1", "x": 21.0, "y": 4.0, "psi": 112.63821411132812, "critical": false}, {"name": "2", "x": 19.0, "y": 20.0, "psi": 88.9449691772461, "critical": false}, {"name": "3", "x": 11.0, "y": 21.0, "psi": 106.00950622558594, "critical": false}, {"name": "4", "x": 14.0, "y": 28.0, "psi": 105.828857421875, "critical": false}, {"name": "5", "x": 19.0, "y": 25.0, "psi": 88.47542572021484, "critical": false}, {"name": "6", "x": 28.0, "y": 23.0, "psi": 76.75917053222656, "critical": false}, {"name": "7", "x": 36.0, "y": 39.0, "psi": 59.644927978515625, "critical": false}, {"name": "8", "x": 38.0, "y": 30.0, "psi": 81.31510162353516, "critical": false}, {"name": "9", "x": 36.0, "y": 42.0, "psi": 50.70794677734375, "critical": false}, {"name": "10", "x": 37.0, "y": 23.0, "psi": 72.64619445800781, "critical": false}, {"name": "11", "x": 37.0, "y": 49.0, "psi": 48.096431732177734, "critical": false}, {"name": "12", "x": 39.0, "y": 60.0, "psi": 36.2202262878418, "critical": false}, {"name": "13", "x": 38.0, "y": 64.0, "psi": 35.914405822753906, "critical": false}, {"name": "14", "x": 38.0, "y": 66.0, "psi": 40.10639572143555, "critical": false}, {"name": "15", "x": 37.0, "y": 69.0, "psi": 44.36175537109375, "critical": false}, {"name": "16", "x": 27.0, "y": 65.0, "psi": 61.70809555053711, "critical": false}, {"name": "17", "x": 27.0, "y": 69.0, "psi": 48.68683624267578, "critical": false}, {"name": "18", "x": 23.0, "y": 68.0, "psi": 83.35831451416016, "critical": false}, {"name": "19", "x": 21.0, "y": 59.0, "psi": 61.69090270996094, "critical": false}, {"name": "20", "x": 45.0, "y": 68.0, "psi": 53.09800720214844, "critical": false}, {"name": "21", "x": 51.0, "y": 62.0, "psi": 61.75616455078125, "critical": false}, {"name": "22", "x": 54.0, "y": 69.0, "psi": 40.085487365722656, "critical": false}, {"name": "23", "x": 35.0, "y": 74.0, "psi": 26.833532333374023, "critical": false}, {"name": "24", "x": 37.0, "y": 71.0, "psi": 44.30226135253906, "critical": false}, {"name": "25", "x": 35.0, "y": 76.0, "psi": 26.7712459564209, "critical": false}, {"name": "27", "x": 39.0, "y": 87.0, "psi": 70.10428619384766, "critical": false}, {"name": "28", "x": 49.0, "y": 85.0, "psi": 78.77070617675781, "critical": false}, {"name": "29", "x": 42.0, "y": 86.0, "psi": 78.77076721191406, "critical": false}, {"name": "30", "x": 47.0, "y": 80.0, "psi": 70.10198211669922, "critical": false}, {"name": "31", "x": 37.0, "y": 80.0, "psi": 44.104427337646484, "critical": false}, {"name": "32", "x": 23.0, "y": 64.0, "psi": 79.02412414550781, "critical": false}, {"name": "33", "x": 56.0, "y": 73.0, "psi": 48.753395080566406, "critical": false}, {"name": "34", "x": 56.0, "y": 77.0, "psi": 44.419189453125, "critical": false}, {"name": "35", "x": 43.0, "y": 81.0, "psi": 78.77074432373047, "critical": true}, {"name": "36", "x": 53.0, "y": 87.0, "psi": 78.77066802978516, "critical": false}], "pipes": [{"pid": "1", "a": "1", "b": "2"}, {"pid": "2", "a": "2", "b": "5"}, {"pid": "3", "a": "2", "b": "3"}, {"pid": "4", "a": "3", "b": "4"}, {"pid": "5", "a": "4", "b": "5"}, {"pid": "6", "a": "5", "b": "6"}, {"pid": "7", "a": "6", "b": "7"}, {"pid": "8", "a": "7", "b": "8"}, {"pid": "9", "a": "7", "b": "9"}, {"pid": "10", "a": "8", "b": "10"}, {"pid": "11", "a": "9", "b": "11"}, {"pid": "12", "a": "11", "b": "12"}, {"pid": "13", "a": "12", "b": "13"}, {"pid": "14", "a": "13", "b": "14"}, {"pid": "16", "a": "13", "b": "16"}, {"pid": "15", "a": "14", "b": "15"}, {"pid": "22", "a": "14", "b": "20"}, {"pid": "17", "a": "15", "b": "17"}, {"pid": "27", "a": "15", "b": "24"}, {"pid": "18", "a": "16", "b": "17"}, {"pid": "21", "a": "16", "b": "19"}, {"pid": "19", "a": "17", "b": "18"}, {"pid": "20", "a": "18", "b": "32"}, {"pid": "23", "a": "20", "b": "21"}, {"pid": "25", "a": "20", "b": "22"}, {"pid": "24", "a": "21", "b": "22"}, {"pid": "35", "a": "22", "b": "33"}, {"pid": "28", "a": "23", "b": "25"}, {"pid": "26", "a": "24", "b": "23"}, {"pid": "29", "a": "25", "b": "26"}, {"pid": "30", "a": "25", "b": "31"}, {"pid": "32", "a": "27", "b": "29"}, {"pid": "40", "a": "28", "b": "35"}, {"pid": "41", "a": "28", "b": "36"}, {"pid": "34", "a": "29", "b": "28"}, {"pid": "38", "a": "29", "b": "35"}, {"pid": "31", "a": "31", "b": "27"}, {"pid": "37", "a": "32", "b": "19"}, {"pid": "36", "a": "33", "b": "34"}, {"pid": "39", "a": "35", "b": "30"}], "steps": [{"step": 1, "chosen": "2", "reading": 1.8178042919757176, "bits": 1.7022700453188024, "minutes": 13.437096247164249, "survivors": 18, "entropy": 4.246006641805615, "top": "25", "top_prob": 0.08145848130569527, "candidates": [{"node": "2", "bits": 1.7022700453188024, "minutes": 13.437096247164249, "score": 1.7022700453188024}, {"node": "3", "bits": 1.6666602913619195, "minutes": 16.435902436096686, "score": 1.6666602913619195}, {"node": "4", "bits": 1.6222713041871188, "minutes": 20.833333333333336, "score": 1.6222713041871188}, {"node": "5", "bits": 1.6178996604865936, "minutes": 17.57918592477416, "score": 1.6178996604865936}, {"node": "1", "bits": 1.5999907811371925, "minutes": 1.0, "score": 1.5999907811371925}, {"node": "6", "bits": 1.5529394790736424, "minutes": 16.873713942763825, "score": 1.5529394790736424}], "posterior": {"1": 1.2820436822139904e-20, "2": 2.2264719264796765e-18, "3": 8.798813325750592e-19, "4": 3.153835327288588e-18, "5": 1.3471432502899725e-16, "6": 1.3845498367246382e-12, "7": 1.3838836368850939e-06, "8": 2.2422215500079405e-07, "9": 1.0762011151587953e-05, "10": 4.610078861737709e-07, "11": 8.41191169790184e-05, "12": 0.006367197563471896, "13": 0.015923607882571276, "14": 0.023154006083729934, "15": 0.028950275934804554, "16": 0.016657919336121037, "17": 0.01996070830234554, "18": 0.014286823414019744, "19": 0.016976423613861483, "20": 0.020090209872357784, "21": 0.018684411941579288, "22": 0.023281515674336867, "23": 0.06638494105665158, "24": 0.03683312636478007, "25": 0.08145848130569527, "27": 0.07889202331529478, "28": 0.0787221255659902, "29": 0.0787221255659902, "30": 0.0789308176343331, "31": 0.0799816873794291, "32": 0.014722759234966321, "33": 0.02119059411371999, "34": 0.022281061665994948, "35": 0.0787221255659902, "36": 0.07872808136877137}}, {"step": 2, "chosen": "30", "reading": -2.5773629392049866, "bits": 1.2294610657589151, "minutes": 55.176484524156166, "survivors": 4, "entropy": 1.406487602343299, "top": "30", "top_prob": 0.7312003437335091, "candidates": [{"node": "30", "bits": 1.2294610657589151, "minutes": 55.176484524156166, "score": 1.2294610657589151}, {"node": "28", "bits": 1.0622236702983194, "minutes": 59.65758776365147, "score": 1.0622236702983194}, {"node": "36", "bits": 1.0238461192411936, "minutes": 62.61101252087279, "score": 1.0238461192411936}, {"node": "35", "bits": 0.9793358215402215, "minutes": 54.62625538857462, "score": 0.9793358215402215}, {"node": "29", "bits": 0.9447319247091993, "minutes": 58.24397918335517, "score": 0.9447319247091993}, {"node": "19", "bits": 0.9265655731465657, "minutes": 32.542706982944395, "score": 0.9265655731465657}], "posterior": {"1": 4.304227865924687e-23, "2": 7.459386987907056e-21, "3": 2.9518838658336044e-21, "4": 1.058069454760827e-20, "5": 4.513357079668333e-19, "6": 4.624901991209186e-15, "7": 4.584941301037269e-09, "8": 7.50274999437395e-10, "9": 3.540321470885622e-08, "10": 1.5377659171720938e-09, "11": 2.7610121533569854e-07, "12": 2.0619974495674615e-05, "13": 5.1554636615181e-05, "14": 7.534506744373803e-05, "15": 9.468048712504649e-05, "16": 5.5252747375404076e-05, "17": 6.554029566611811e-05, "18": 4.7810464321962374e-05, "19": 5.630331578447552e-05, "20": 6.62417721467333e-05, "21": 6.197443222260555e-05, "22": 7.572040155300574e-05, "23": 0.00021164915079763133, "24": 0.00012046097088709191, "25": 0.0002597067666129632, "27": 0.0047904864832372185, "28": 0.06320130836026869, "29": 0.04214022740137928, "30": 0.7312003437335091, "31": 0.0003988014479837414, "32": 4.9210203834997334e-05, "33": 6.95422396165546e-05, "34": 7.277399972851318e-05, "35": 0.09436786489972318, "36": 0.06244626237025448}}, {"step": 3, "chosen": "35", "reading": -2.7645596959564287, "bits": 0.8453243375425065, "minutes": 3.435921354681384, "survivors": 3, "entropy": 1.4316306902709883, "top": "30", "top_prob": 0.693070854097393, "candidates": [{"node": "35", "bits": 0.8453243375425065, "minutes": 3.435921354681384, "score": 0.8453243375425065}, {"node": "8", "bits": 0.808986310803258, "minutes": 42.336285986268464, "score": 0.808986310803258}, {"node": "20", "bits": 0.7965081622916155, "minutes": 10.137937550497032, "score": 0.7965081622916155}, {"node": "4", "bits": 0.7949342072279808, "minutes": 51.32278030054274, "score": 0.7949342072279808}, {"node": "23", "bits": 0.7862693040466519, "minutes": 11.180339887498949, "score": 0.7862693040466519}, {"node": "24", "bits": 0.7849237945917807, "minutes": 11.211353372561426, "score": 0.7849237945917807}], "posterior": {"1": 1.1167893022876544e-25, "2": 1.9314301104728052e-23, "3": 7.653480956050701e-24, "4": 2.7433038663613234e-23, "5": 1.1684950991443743e-21, "6": 1.1935561531455612e-17, "7": 1.1727468526604366e-11, "8": 1.9399390477434296e-12, "9": 8.988243988056991e-11, "10": 3.9625388565034365e-12, "11": 6.992442065656765e-10, "12": 5.1470998357637623e-08, "13": 1.2865312221475096e-07, "14": 1.890476852211688e-07, "15": 2.388448934318224e-07, "16": 1.4151699836141483e-07, "17": 1.6604090397413232e-07, "18": 1.2362052140677543e-07, "19": 1.441835371043731e-07, "20": 1.6856310027921495e-07, "21": 1.5873302306050158e-07, "22": 1.8988286291919535e-07, "23": 5.194884681039226e-07, "24": 3.0387980277522463e-07, "25": 6.374448932846893e-07, "27": 0.00028409993366040404, "28": 0.06465896231270409, "29": 0.027415000247879556, "30": 0.693070854097393, "31": 1.582610690785659e-06, "32": 1.2709012626835204e-07, "33": 1.7607084603067828e-07, "34": 1.83325417682825e-07, "35": 0.15153924703410668, "36": 0.06302660509960832}}], "scenario": {"truth": "29", "leak_lps": 25.537930612148372, "leak_pct": 125.40567958593263, "sigma": 0.6103277807866851, "critical_node": "35", "critical_min_psi": 30.0, "service_min_psi": 20.0, "sims": 36, "sim_seconds": 0.9908773899078369, "demand_lps": 20.364253593991993}, "identifiability": {"verdict": "NOT_IDENTIFIABLE_FROM_PRESSURE", "survivors": ["30", "35", "28"], "n_pairs": 3, "blocked": [[0.1233978271484375, "35", "28", "28"], [0.6862106323242188, "30", "35", "30"], [0.7855758666992188, "30", "28", "30"]], "advice_node": "36", "advice_sep": 0.10494232177734375, "threshold": 1.2206555615733703}, "candidates": [{"candidate": "30", "probability": 0.693070854097393, "best_plan": "tight ring + backup supply", "valves": 1, "critical_psi": 78.77427673339844, "out": 0, "naive_critical_psi": 55.4056282043457, "safe": true}, {"candidate": "35", "probability": 0.15153924703410668, "best_plan": "tight ring + backup supply", "valves": 3, "critical_psi": 65.06365203857422, "out": 0, "naive_critical_psi": 2.00038480758667, "safe": true}, {"candidate": "28", "probability": 0.06465896231270409, "best_plan": "tight ring", "valves": 3, "critical_psi": 78.77178955078125, "out": 1, "naive_critical_psi": 2.00038480758667, "safe": true}], "dangerous": ["35", "28"], "isolation": [{"name": "tight ring", "accepted": true, "segment": ["39"], "baseline_psi": 78.7707290649414, "critical_psi": 78.77427673339844, "stranded_graph": ["30"], "pressure_only": [], "already_dry": [], "stranded_hydraulics": 1, "valves": 1, "agree": true, "backup": false, "chosen": false}, {"name": "tight ring + backup supply", "accepted": true, "segment": ["39"], "baseline_psi": 78.7707290649414, "critical_psi": 78.77427673339844, "stranded_graph": [], "pressure_only": [], "already_dry": [], "stranded_hydraulics": 0, "valves": 1, "agree": true, "backup": true, "chosen": true}, {"name": "wider ring", "accepted": true, "segment": ["39", "38", "40"], "baseline_psi": 78.7707290649414, "critical_psi": 55.4056282043457, "stranded_graph": ["30", "35"], "pressure_only": [], "already_dry": ["35"], "stranded_hydraulics": 1, "valves": 3, "agree": false, "backup": false, "chosen": false}, {"name": "wider ring + backup supply", "accepted": true, "segment": ["39", "38", "40"], "baseline_psi": 78.7707290649414, "critical_psi": 65.06365203857422, "stranded_graph": ["35"], "pressure_only": [], "already_dry": ["35"], "stranded_hydraulics": 0, "valves": 3, "agree": false, "backup": true, "chosen": false}], "measured": [{"net": "Net2  35 junctions,  20.4 L/s", "junctions": 35, "incidents": 35, "fused": 24, "pairs": 66, "info_top1": 8.571428571428571, "rand_top1": 8.571428571428571, "info_top5": 37.142857142857146, "rand_top5": 28.571428571428573, "info_hops": 4.485714285714286, "rand_hops": 5.142857142857143, "lift": 12.777777777777787}, {"net": "Net3  92 junctions, 192.6 L/s", "junctions": 92, "incidents": 92, "fused": 8, "pairs": 66, "info_top1": 19.565217391304348, "rand_top1": 5.434782608695652, "info_top5": 46.73913043478261, "rand_top5": 22.82608695652174, "info_hops": 3.9782608695652173, "rand_hops": 6.271739130434782, "lift": 36.56845753899481}]};</script>
+<script src="trace.js"></script>
 <style>
   :root{
     --bg:#04070C; --bg2:#070C14; --rule:#152232;
@@ -420,3 +660,18 @@ draw();
 </script>
 </body>
 </html>
+""";
+
+
+def write_page(path: str, body: str) -> int {
+    """Write one page as UTF-8 with LF endings, and report its size.""";
+    with open(path, "w", encoding="utf-8", newline="") as f { f.write(body); }
+    return len(body);
+}
+
+
+with entry:__main__ {
+    n1 = write_page("web/index.html", INDEX_HTML);
+    n2 = write_page("web/board.html", BOARD_HTML);
+    print(f"[pages] web/index.html {n1} chars, web/board.html {n2} chars");
+}

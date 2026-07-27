@@ -1,10 +1,14 @@
-# Artifacts written by the Jac run, not hand-authored source. main.jac writes
-# trace.js, trace.json and standalone.html; export_web.jac writes replay.json;
-# the evaluation harness writes measured.json. They are committed so the board
-# opens straight from a clone, but they are output and are excluded from the
-# repository's language statistics.
+# Artifacts written by the Jac run, not hand-authored source. pages.jac holds the
+# board markup and main.jac emits index.html, board.html and standalone.html from
+# it; main.jac also writes trace.js and trace.json, export_web.jac writes
+# replay.json, and the evaluation harness writes measured.json. They are committed
+# so the board opens straight from a clone, but they are output and are excluded
+# from the repository's language statistics.
+web/index.html        linguist-generated=true
+web/board.html        linguist-generated=true
 web/standalone.html   linguist-generated=true
 web/trace.js          linguist-generated=true
 web/trace.json        linguist-generated=true
 web/measured.json     linguist-generated=true
 web/public/replay.json linguist-generated=true
+web/generated/docs.json linguist-generated=true
