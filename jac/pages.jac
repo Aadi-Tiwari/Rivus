@@ -109,7 +109,8 @@ glob INDEX_HTML: str = """<!doctype html>
     <div class="grow"></div>
     <div class="links">
       <a href="#method">METHOD</a><a href="#results">RESULTS</a><a href="#limits">LIMITS</a>
-      <a href="board.html" style="color:var(--mint)">LIVE BOARD</a>
+      <a href="board.html">SHUTDOWN PLAN</a>
+      <a href="dashboard.html" style="color:var(--mint)">LIVE BOARD</a>
     </div>
   </nav>
 
@@ -118,7 +119,7 @@ glob INDEX_HTML: str = """<!doctype html>
     <h1>Find the leak<br>without <em>guessing</em></h1>
     <p>Bayesian leak localisation over live pressure gauges. Rivus reports a credible set
        and the bits it is still missing — never a single pipe it cannot prove.</p>
-    <a class="cta" href="board.html">[ RUN A DIAGNOSIS ]</a>
+    <a class="cta" href="dashboard.html">[ RUN A DIAGNOSIS ]</a>
     <div class="scrollnote">SCROLL FOR METHOD</div>
   </div>
 
@@ -685,11 +686,13 @@ glob DASHBOARD_HTML: str = """<!doctype html>
   body{background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:13px;
        -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
 
-  /* The particle field the panels refract. Data-free atmosphere, deliberately quiet. */
-  #field{position:fixed;inset:0;pointer-events:none;z-index:0}
-  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.10);pointer-events:none;z-index:1}
+  /* Two atmosphere layers the panels refract, neither carrying data: the halftone
+     swell the landing page uses, and the particle field over it. */
+  #swell{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55}
+  #field{position:fixed;inset:0;pointer-events:none;z-index:1}
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.10);pointer-events:none;z-index:2}
 
-  #page{position:relative;z-index:2;height:100svh;display:flex;flex-direction:column;
+  #page{position:relative;z-index:3;height:100svh;display:flex;flex-direction:column;
         gap:12px;padding:16px}
 
   .panel{background:var(--panel);border:1px solid var(--edge);border-radius:16px;
@@ -838,15 +841,24 @@ glob DASHBOARD_HTML: str = """<!doctype html>
   .card.chance .p{color:var(--ink3)}
   .note{font-size:10px;color:var(--ink3);margin-top:10px}
 
+  /* Water motion. The duration is set per pipe from its flow, so a main visibly
+     moves faster than a branch. Without the name here the dashes never ran. */
+  .flow{animation-name:flow;animation-timing-function:linear;animation-iteration-count:infinite}
+  /* A probe reads as belief moving, not as a cut. */
+  #plot circle.heat{transition:r 220ms var(--ease),fill 220ms var(--ease)}
+  #plot circle.ring{transition:r 220ms var(--ease),opacity 220ms var(--ease)}
+
   @media (prefers-reduced-motion: reduce){
-    #field{display:none}
+    #field,#swell{display:none}
     .flow,.ripple{animation:none !important}
+    #plot circle{transition:none !important}
   }
   @keyframes flow{to{stroke-dashoffset:-16}}
   @keyframes ripple{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
 </style>
 </head>
 <body>
+<canvas id="swell"></canvas>
 <canvas id="field"></canvas>
 <div id="scrim"></div>
 
@@ -959,8 +971,39 @@ const EASE = "cubic-bezier(.32,.72,0,1)";
 const FULL_HEAT = 0.5;      /* belief that earns a fully saturated node */
 const VIEW = 1000, PAD = 0.07;
 
-let D, incidentIdx = 0, armKey = "adaptive", step = 0, playing = false,
+let D, plotKey = "", incidentIdx = 0, armKey = "adaptive", step = 0, playing = false,
     hover = null, showMap = true, timer = null, splitPct = 70;
+
+/* ------------------------------------------------------- halftone swell ---- */
+/* The landing page's dot field, carried through as living atmosphere: stacked sine
+   ridges sampled on a grid, the same shape family as the hero artwork. */
+(function swellField(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = $("swell"), cx = cv.getContext("2d");
+  const t0 = performance.now();
+  (function swell(){
+    requestAnimationFrame(swell);
+    const w = cv.width = innerWidth, h = cv.height = innerHeight;
+    const t = (performance.now() - t0) / 9000, gap = 13;
+    cx.clearRect(0, 0, w, h);
+    for (let y = 0; y < h; y += gap) {
+      for (let x = 0; x < w; x += gap) {
+        const u = x / w, v = y / h;
+        const a = Math.sin(u * 5.2 + t * 1.3 + Math.cos(v * 3.1 + t * 0.7) * 1.5);
+        const b = Math.sin(u * 2.4 - t * 0.9 + v * 4.6);
+        const band = Math.max(0, a * 0.65 + b * 0.35);
+        const fall = Math.pow(1 - v, 1.5) * Math.min(1, u * 1.6 + 0.15);
+        const r = band * fall * 3.1;
+        if (r > 0.22) {
+          const wash = Math.min(1, band * fall * 1.5);
+          cx.fillStyle = "rgba(" + Math.round(62 + 180 * wash) + "," + Math.round(127 + 120 * wash)
+                       + "," + Math.round(184 + 66 * wash) + "," + (0.09 + wash * 0.5).toFixed(3) + ")";
+          cx.beginPath(); cx.arc(x, y, r, 0, 6.283); cx.fill();
+        }
+      }
+    }
+  })();
+})();
 
 /* ------------------------------------------------------ particle field ---- */
 /* Ported from the Echoes background: same motion and connection lines, in the
@@ -983,8 +1026,9 @@ let D, incidentIdx = 0, armKey = "adaptive", step = 0, playing = false,
   P.forEach(p => { p.vx = p.bx; p.vy = p.by; });
   (function frame(){
     requestAnimationFrame(frame);
-    cx.fillStyle = "rgba(0,7,15,.18)";
-    cx.fillRect(0, 0, cv.width, cv.height);
+    /* Cleared rather than washed with a translucent fill: the swell sits behind this
+       layer and a fill would bury it. */
+    cx.clearRect(0, 0, cv.width, cv.height);
     for (const p of P) {
       const dx = p.x - mx, dy = p.y - my, d = Math.hypot(dx, dy);
       if (d < 120 && d > 0) {
@@ -1049,25 +1093,20 @@ function replayableArms(){
 
 function drawPlot(){
   if (!showMap) return;
-  const c = current(), net = D.network;
-  const gauges = new Set(net.gauges), inSet = new Set(c.credibleSet);
-  const chance = 1 / net.junctions.length;
-  /* Heat is measured against chance on a fixed scale, never against the current
-     maximum, which would render a flat prior as total confidence. */
-  const heat = p => Math.max(0, Math.min(1, (p - chance) / (FULL_HEAT - chance)));
-  const probs = Object.values(c.posterior), maxP = Math.max(...probs);
-  const ranked = Object.entries(c.posterior).sort((a, b) => b[1] - a[1]);
+  const key = incidentIdx + "|" + armKey;
+  if (key !== plotKey) { buildPlot(); plotKey = key; }
+  updatePlot();
+}
+
+/* Built once per run. Every mark a junction can carry exists from the start and is
+   only ever re-valued, because a node replaced on each step cannot transition. */
+function buildPlot(){
+  const net = D.network, gauges = new Set(net.gauges);
   const maxFlow = Math.max(...net.pipes.map(p => Math.abs(p.flow)), 1);
-  let s = "";
-
-  s += '<defs><radialGradient id="peak">' +
-       '<stop offset="0%" stop-color="var(--belief)" stop-opacity=".35"/>' +
-       '<stop offset="100%" stop-color="var(--belief)" stop-opacity="0"/></radialGradient></defs>';
-
-  if (maxP > chance * 2) {
-    const p = POS.get(ranked[0][0]);
-    if (p) s += `<circle cx="${p.x}" cy="${p.y}" r="110" fill="url(#peak)" opacity="${heat(maxP).toFixed(3)}"/>`;
-  }
+  let s = '<defs><radialGradient id="peak">' +
+          '<stop offset="0%" stop-color="var(--belief)" stop-opacity=".35"/>' +
+          '<stop offset="100%" stop-color="var(--belief)" stop-opacity="0"/></radialGradient></defs>';
+  s += '<circle id="peakglow" r="110" fill="url(#peak)" opacity="0"/>';
 
   let d = "";
   for (const p of net.pipes) {
@@ -1092,38 +1131,82 @@ function drawPlot(){
   }
 
   for (const j of net.junctions) {
-    const p = POS.get(j.id), prob = c.posterior[j.id] || 0, t = heat(prob), r = 5 + t * 9;
-    const fill = `rgb(${Math.round(74 - t * 29)},${Math.round(114 + t * 98)},${Math.round(134 + t * 57)})`;
-    s += `<g data-j="${j.id}" style="cursor:pointer">`;
-    if (t > 0.15) {
-      s += `<circle class="ripple" cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="var(--belief)" ` +
-           `stroke-width="1.5" opacity="0" style="animation:ripple 2.4s ${EASE} infinite;` +
-           `animation-delay:${((+j.id % 7) * 0.3).toFixed(1)}s;transform-origin:${p.x}px ${p.y}px"/>`;
-    }
-    if (gauges.has(j.id)) s += `<circle cx="${p.x}" cy="${p.y}" r="${r + 5}" fill="none" stroke="var(--belief)" stroke-width="1" opacity=".45"/>`;
-    if (inSet.has(j.id)) s += `<circle cx="${p.x}" cy="${p.y}" r="${r + 2.5}" fill="none" stroke="var(--foam)" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`;
-    s += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${fill}"/>`;
-    if (c.probeGauge === j.id) s += `<circle cx="${p.x}" cy="${p.y}" r="${r + 10}" fill="none" stroke="var(--cost)" stroke-width="2"/>`;
-    s += `<circle cx="${p.x}" cy="${p.y}" r="18" fill="transparent"/>`;
-    if (hover === j.id) {
-      s += `<g pointer-events="none"><rect x="${p.x + 14}" y="${p.y - 30}" width="126" height="38" rx="6" fill="#00121A" stroke="rgba(255,255,255,.2)"/>` +
-           `<text x="${p.x + 22}" y="${p.y - 15}" fill="white" font-size="13" font-family="monospace">Junction ${j.id}</text>` +
-           `<text x="${p.x + 22}" y="${p.y + 1}" fill="var(--belief)" font-size="13" font-family="monospace">${(prob * 100).toFixed(1)}% belief</text></g>`;
-    }
-    s += "</g>";
+    const p = POS.get(j.id);
+    s += `<g data-j="${j.id}" style="cursor:pointer">` +
+         `<circle id="rp${j.id}" class="ripple" cx="${p.x}" cy="${p.y}" r="5" fill="none" ` +
+           `stroke="var(--belief)" stroke-width="1.5" opacity="0" style="display:none;` +
+           `animation:ripple 2.4s ${EASE} infinite;animation-delay:${((+j.id % 7) * 0.3).toFixed(1)}s;` +
+           `transform-origin:${p.x}px ${p.y}px"/>` +
+         (gauges.has(j.id)
+           ? `<circle id="gr${j.id}" class="ring" cx="${p.x}" cy="${p.y}" r="10" fill="none" stroke="var(--belief)" stroke-width="1" opacity=".45"/>`
+           : "") +
+         `<circle id="sr${j.id}" class="ring" cx="${p.x}" cy="${p.y}" r="7.5" fill="none" stroke="var(--foam)" ` +
+           `stroke-width="1" stroke-dasharray="3 3" opacity="0"/>` +
+         `<circle id="h${j.id}" class="heat" cx="${p.x}" cy="${p.y}" r="5" fill="#4A7286"/>` +
+         `<circle id="pr${j.id}" class="ring" cx="${p.x}" cy="${p.y}" r="15" fill="none" stroke="var(--cost)" stroke-width="2" opacity="0"/>` +
+         `<circle cx="${p.x}" cy="${p.y}" r="18" fill="transparent"/>` +
+         `</g>`;
   }
 
-  if (finished()) {
-    const p = POS.get(incident().trueLeakJunction);
-    if (p) {
-      s += `<g pointer-events="none"><rect x="${p.x - 11}" y="${p.y - 11}" width="22" height="22" fill="none" stroke="#63798C" stroke-width="1.5"/>` +
-           `<text x="${p.x + 16}" y="${p.y - 12}" fill="#63798C" font-size="12" font-family="monospace">Ground truth (evaluation only)</text></g>`;
-    }
-  }
-
+  s += '<g id="tip" pointer-events="none"></g><g id="truth" pointer-events="none"></g>';
   const plot = $("plot");
   plot.setAttribute("viewBox", `0 0 ${VW} ${VH}`);
   plot.innerHTML = s;
+}
+
+/* Re-values the marks for the current step. Radius and fill carry a CSS transition,
+   so the belief update is visible as motion. */
+function updatePlot(){
+  const c = current(), net = D.network;
+  const gauges = new Set(net.gauges), inSet = new Set(c.credibleSet);
+  const chance = 1 / net.junctions.length;
+  const heat = p => Math.max(0, Math.min(1, (p - chance) / (FULL_HEAT - chance)));
+  const ranked = Object.entries(c.posterior).sort((a, b) => b[1] - a[1]);
+  const maxP = ranked[0][1];
+
+  const glow = $("peakglow"), lead = POS.get(ranked[0][0]);
+  if (lead && maxP > chance * 2) {
+    glow.setAttribute("cx", lead.x); glow.setAttribute("cy", lead.y);
+    glow.setAttribute("opacity", heat(maxP).toFixed(3));
+  } else { glow.setAttribute("opacity", "0"); }
+
+  for (const j of net.junctions) {
+    const prob = c.posterior[j.id] || 0, t = heat(prob), r = 5 + t * 9;
+    const h = document.getElementById("h" + j.id);
+    h.setAttribute("r", r.toFixed(2));
+    h.setAttribute("fill", `rgb(${Math.round(74 - t * 29)},${Math.round(114 + t * 98)},${Math.round(134 + t * 57)})`);
+
+    const rp = document.getElementById("rp" + j.id);
+    rp.style.display = t > 0.15 ? "" : "none";
+    rp.setAttribute("r", r.toFixed(2));
+
+    if (gauges.has(j.id)) document.getElementById("gr" + j.id).setAttribute("r", (r + 5).toFixed(2));
+
+    const sr = document.getElementById("sr" + j.id);
+    sr.setAttribute("r", (r + 2.5).toFixed(2));
+    sr.setAttribute("opacity", inSet.has(j.id) ? "0.7" : "0");
+
+    const pr = document.getElementById("pr" + j.id);
+    pr.setAttribute("r", (r + 10).toFixed(2));
+    pr.setAttribute("opacity", c.probeGauge === j.id ? "1" : "0");
+  }
+
+  const tip = $("tip");
+  if (hover && POS.get(hover) && c.posterior[hover] !== undefined) {
+    const p = POS.get(hover);
+    tip.innerHTML =
+      `<rect x="${p.x + 14}" y="${p.y - 30}" width="126" height="38" rx="6" fill="#00121A" stroke="rgba(255,255,255,.2)"/>` +
+      `<text x="${p.x + 22}" y="${p.y - 15}" fill="white" font-size="13" font-family="monospace">Junction ${hover}</text>` +
+      `<text x="${p.x + 22}" y="${p.y + 1}" fill="var(--belief)" font-size="13" font-family="monospace">` +
+      `${(c.posterior[hover] * 100).toFixed(1)}% belief</text>`;
+  } else { tip.innerHTML = ""; }
+
+  const truth = $("truth"), tp = POS.get(incident().trueLeakJunction);
+  if (finished() && tp) {
+    truth.innerHTML =
+      `<rect x="${tp.x - 11}" y="${tp.y - 11}" width="22" height="22" fill="none" stroke="#63798C" stroke-width="1.5"/>` +
+      `<text x="${tp.x + 16}" y="${tp.y - 12}" fill="#63798C" font-size="12" font-family="monospace">Ground truth (evaluation only)</text>`;
+  } else { truth.innerHTML = ""; }
 }
 
 function render(){
@@ -1230,7 +1313,7 @@ document.addEventListener("click", e => {
     render(); tick(); return;
   }
   if (e.target.closest("#stepfwd")) { stop(); step = Math.min(step + 1, steps().length - 1); render(); return; }
-  if (e.target.closest("#toggle")) { showMap = !showMap; render(); return; }
+  if (e.target.closest("#toggle")) { showMap = !showMap; plotKey = ""; render(); return; }
 });
 
 document.addEventListener("mouseover", e => {
