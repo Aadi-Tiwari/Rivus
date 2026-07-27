@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivus — live diagnosis</title>
+<script src="replay.js"></script>
+<style>
+  :root{
+    --ground:#00070F; --panel:rgba(8,22,31,.35); --well:rgba(2,10,17,.35);
+    --edge:rgba(255,255,255,.20); --rule:rgba(255,255,255,.08);
+    --ink:#E8F4F8; --ink2:rgba(255,255,255,.70); --ink3:rgba(255,255,255,.45);
+    --belief:#2DD4BF; --belief-deep:#22A5C4; --foam:#BFE9FF; --cost:#E8A33D;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --disp:"Iowan Old Style",Georgia,"Times New Roman",serif;
+    --ease:cubic-bezier(.32,.72,0,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:13px;
+       -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+
+  /* The particle field the panels refract. Data-free atmosphere, deliberately quiet. */
+  #field{position:fixed;inset:0;pointer-events:none;z-index:0}
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.10);pointer-events:none;z-index:1}
+
+  #page{position:relative;z-index:2;height:100svh;display:flex;flex-direction:column;
+        gap:12px;padding:16px}
+
+  .panel{background:var(--panel);border:1px solid var(--edge);border-radius:16px;
+         backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+         box-shadow:0 10px 40px -16px rgba(0,0,0,.7)}
+
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink3)}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* command bar */
+  .bar{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
+  .glyph{width:17px;height:17px;position:relative}
+  .glyph i{position:absolute;width:7px;height:7px;background:var(--belief)}
+  .glyph i:nth-child(1){left:0;top:10px}
+  .glyph i:nth-child(2){left:5px;top:5px;opacity:.75}
+  .glyph i:nth-child(3){left:10px;top:0;opacity:.5}
+  .brand b{font-weight:400;font-size:15px;letter-spacing:.02em}
+  .sep{width:1px;height:24px;background:var(--rule)}
+
+  select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);
+         border-radius:8px;height:32px;padding:0 26px 0 10px;color:var(--ink);
+         font:inherit;font-size:12px;outline:none;appearance:none;
+         background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' stroke='rgba(255,255,255,0.5)' stroke-width='1.4' fill='none'/></svg>");
+         background-repeat:no-repeat;background-position:right 8px center}
+  select option{background:#00121A}
+
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  .arm{font-size:11px;height:32px;padding:0 10px;border-radius:8px;
+       border:1px solid rgba(255,255,255,.10);color:var(--ink3);
+       transition:all 200ms var(--ease)}
+  .arm:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+  .arm:active{transform:scale(.97)}
+  .arm.on{border-color:rgba(45,212,191,.5);color:var(--belief);background:rgba(45,212,191,.10)}
+  .arm .only{color:rgba(255,255,255,.25);margin-left:6px}
+
+  .navlink{font-size:10px;text-transform:uppercase;letter-spacing:.12em;
+           color:var(--ink3);text-decoration:none;transition:color 150ms var(--ease)}
+  .navlink:hover{color:var(--ink)}
+
+  .pips{display:flex;gap:4px;width:132px;flex:none}
+  .pips i{height:6px;flex:1;border-radius:99px;background:rgba(255,255,255,.13);
+          transition:background 200ms var(--ease)}
+  .pips i.on{background:var(--belief)}
+
+  .play{display:flex;align-items:center;gap:8px;font-size:12px;height:36px;padding:0 14px;
+        border-radius:8px;border:1px solid rgba(45,212,191,.5);color:var(--belief);
+        background:rgba(45,212,191,.10);transition:all 200ms var(--ease)}
+  .play:hover{background:rgba(45,212,191,.20)}
+  .play:active{transform:scale(.97)}
+  .step{height:36px;width:36px;display:grid;place-items:center;border-radius:8px;
+        border:1px solid rgba(255,255,255,.13);color:var(--ink2);transition:all 200ms var(--ease)}
+  .step:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+  .step:active{transform:scale(.97)}
+
+  /* body split */
+  .split{flex:1;min-height:0;display:grid;grid-template-columns:70% 14px minmax(0,1fr);gap:0}
+  .divider{cursor:col-resize;position:relative;touch-action:none;outline:none}
+  .divider s{position:absolute;inset:0 auto;left:50%;transform:translateX(-50%);width:1px;
+             background:rgba(255,255,255,.15);text-decoration:none}
+  .divider:hover s,.divider:focus s{background:rgba(255,255,255,.40)}
+  .divider b{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+             width:3px;height:48px;border-radius:99px;background:rgba(255,255,255,.25)}
+  .divider:hover b{background:rgba(255,255,255,.55)}
+  .divider.drag s,.divider.drag b{background:var(--belief)}
+
+  .map{padding:16px;display:flex;flex-direction:column;min-height:0}
+  .maphead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex:none}
+  h1{font-family:var(--disp);font-weight:400;font-size:clamp(20px,2vw,26px);line-height:1.15}
+  h1 i{font-style:italic}
+  .toggle{height:28px;padding:0 9px;display:flex;align-items:center;gap:6px;border-radius:6px;
+          border:1px solid rgba(255,255,255,.15);color:var(--ink3);font-size:9px;
+          text-transform:uppercase;letter-spacing:.14em;transition:all 200ms var(--ease)}
+  .toggle:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+  .toggle.off{border-color:rgba(45,212,191,.5);color:var(--belief);background:rgba(45,212,191,.10)}
+
+  .well{flex:1;min-height:0;margin-top:8px;border-radius:12px;overflow:hidden;
+        border:1px solid rgba(255,255,255,.10);background:var(--well)}
+  .well svg{width:100%;height:100%;display:block}
+
+  .cset{flex:none;margin-top:12px;display:flex;align-items:flex-start;gap:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+  .chip{font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid rgba(232,163,61,.35);
+        color:var(--ink2);transition:all 160ms var(--ease);font-variant-numeric:tabular-nums}
+  .chip.hot{border-color:rgba(191,233,255,.7);color:var(--foam);background:rgba(191,233,255,.10)}
+  .big .chip{font-size:14px;padding:4px 10px}
+
+  .legend{flex:none;display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:10px;
+          font-size:10px;color:var(--ink3)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .sw{width:10px;height:10px;border-radius:99px}
+
+  /* right rail */
+  .rail{min-height:0;display:flex;flex-direction:column;gap:12px}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .cell{padding:14px}
+  .cell .v{font-size:26px;line-height:1.1;margin-top:2px}
+  .cell .v s{font-size:12px;color:var(--ink3);text-decoration:none;margin-left:6px}
+  .cost{color:var(--cost)}
+  .foot{font-size:10px;color:var(--ink3);margin-top:2px}
+  .bars{margin-top:6px;height:24px;display:flex;align-items:flex-end;gap:4px}
+  .bars i{flex:1;border-radius:2px;background:rgba(255,255,255,.10);transition:background 220ms var(--ease)}
+  .bars i.on{background:var(--cost)}
+
+  .cand{display:flex;align-items:center;gap:10px;padding:2px 8px;border-radius:8px;
+        transition:background 160ms var(--ease)}
+  .cand.hot{background:rgba(255,255,255,.07)}
+  .cand .id{width:24px;font-size:11px;color:var(--ink3)}
+  .cand .track{position:relative;flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .cand .fill{height:100%;width:100%;border-radius:99px;transform-origin:left;
+              background:linear-gradient(90deg,var(--belief-deep),var(--belief));
+              transition:transform 260ms var(--ease)}
+  .cand .tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35)}
+  .cand .pct{width:46px;text-align:right;font-size:11px;color:var(--ink2)}
+  .cand .in{width:6px;height:6px;border-radius:99px;background:var(--foam)}
+
+  .log{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+  .log::-webkit-scrollbar{width:6px}
+  .log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
+  .log .row{display:flex;align-items:center;gap:8px;font-size:11px}
+  .log .row .i{width:14px;color:var(--ink3)}
+  .log .row .g{color:var(--ink2)}
+  .log .row .p{color:var(--ink3)}
+  .log .row .b{margin-left:auto;color:var(--belief)}
+  .last{margin-top:10px;padding-top:10px;border-top:1px solid var(--rule);flex:none}
+  .trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px}
+  .trio .v{font-size:14px;color:var(--ink2)}
+  .trio .k{font-size:10px;color:var(--ink3)}
+
+  /* bottom strip */
+  .strip{flex:none;display:flex;align-items:flex-start;gap:24px;padding:16px 20px}
+  .badge{font-size:9px;text-transform:uppercase;letter-spacing:.16em;padding:4px 8px;
+         border-radius:4px;border:1px solid rgba(45,212,191,.35);color:rgba(45,212,191,.9);flex:none}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px}
+  .card{text-align:left;border-radius:8px;padding:8px 12px;border:1px solid rgba(255,255,255,.07);
+        transition:all 180ms var(--ease)}
+  .card:hover{border-color:rgba(255,255,255,.20)}
+  .card.on{border-color:rgba(45,212,191,.45);background:rgba(45,212,191,.07)}
+  .card.chance{border-style:dashed;border-color:rgba(255,255,255,.10);cursor:default}
+  .card .n{font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card.on .n{color:var(--belief)}
+  .card .v{font-size:18px;margin-top:2px;color:var(--ink2)}
+  .card.on .v{color:var(--belief)}
+  .card .p{font-size:10px;color:var(--cost);margin-left:6px}
+  .card.chance .v,.card.chance .n{color:var(--ink3)}
+  .card.chance .p{color:var(--ink3)}
+  .note{font-size:10px;color:var(--ink3);margin-top:10px}
+
+  @media (prefers-reduced-motion: reduce){
+    #field{display:none}
+    .flow,.ripple{animation:none !important}
+  }
+  @keyframes flow{to{stroke-dashoffset:-16}}
+  @keyframes ripple{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+<div id="scrim"></div>
+
+<div id="page">
+  <header class="panel bar">
+    <a class="brand" href="index.html"><span class="glyph"><i></i><i></i><i></i></span><b>Rivus</b></a>
+    <span class="sep"></span>
+    <select id="incident"></select>
+    <span id="arms" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <a class="navlink" href="method.html">Method</a>
+      <a class="navlink" href="results.html">Results</a>
+      <a class="navlink" href="limits.html">Limits</a>
+      <span class="pips" id="pips"></span>
+      <button class="play" id="play"></button>
+      <button class="step" id="stepfwd" title="Step forward">&#9654;&#124;</button>
+    </span>
+  </header>
+
+  <div class="split" id="split">
+    <section class="panel map" id="mappanel">
+      <div class="maphead">
+        <h1>What we know, and what we <i>don't</i></h1>
+        <button class="toggle" id="toggle"></button>
+      </div>
+      <div class="well" id="well"><svg id="plot" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="cset" id="cset"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--belief)"></i>Belief mass</span>
+        <span><i class="sw" style="border:1px solid rgba(45,212,191,.6)"></i>Gauge</span>
+        <span><i class="sw" style="border:1px dashed rgba(191,233,255,.7)"></i>In credible set</span>
+        <span><i class="sw" style="border:2px solid var(--cost)"></i>Probed now</span>
+        <span><i class="sw" style="border:1px solid #8FA6B4;border-radius:0"></i>Source</span>
+      </div>
+    </section>
+
+    <div class="divider" id="divider" tabindex="0" title="Drag to resize, double-click to reset"><s></s><b></b></div>
+
+    <aside class="rail">
+      <div class="duo">
+        <div class="panel cell">
+          <div class="lbl">Uncertainty</div>
+          <div class="v num" id="bits"></div>
+          <svg id="spark" viewBox="0 0 120 32" preserveAspectRatio="none" style="width:100%;height:26px;overflow:visible"></svg>
+          <div class="foot" id="bitsfoot"></div>
+        </div>
+        <div class="panel cell">
+          <div class="lbl">Dispatches</div>
+          <div class="v num cost" id="disp"></div>
+          <div class="bars" id="dispbars"></div>
+          <div class="foot" id="dispfoot"></div>
+        </div>
+      </div>
+
+      <div class="panel cell">
+        <div class="lbl" style="margin-bottom:10px">Leading candidates</div>
+        <div id="cands"></div>
+        <div class="foot" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)">
+          Top-1 is not a call we make.
+        </div>
+      </div>
+
+      <div class="panel cell" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="lbl" style="margin-bottom:10px">Probe log</div>
+        <div class="log" id="log"></div>
+        <div class="last">
+          <div class="lbl">Last probe</div>
+          <div class="trio">
+            <div><div class="v num" id="lpg"></div><div class="k">Read</div></div>
+            <div><div class="v num" id="lpp"></div><div class="k">psi</div></div>
+            <div><div class="v num" id="lpb" style="color:var(--belief)"></div><div class="k">Bits expected</div></div>
+          </div>
+          <div class="foot" id="noise" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="panel strip">
+    <div style="flex:none">
+      <div class="lbl">Network</div>
+      <div class="num" style="font-size:11px;color:var(--ink2);margin-top:4px" id="net"></div>
+      <div class="num foot" id="netsub"></div>
+    </div>
+    <span class="badge" id="fixture" hidden>Fixture data</span>
+    <div style="width:1px;height:56px;background:var(--rule);flex:none"></div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+        <div class="lbl" id="measured"></div>
+        <div class="foot" id="axes"></div>
+      </div>
+      <div class="grid" id="cards"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ data ---- */
+/* replay.js sets window.REPLAY so the page opens over file:// with no server.
+   The fetch is the fallback for when it is served instead. */
+const boot = window.REPLAY
+  ? Promise.resolve(window.REPLAY)
+  : fetch("replay.json").then(r => r.json());
+
+const $ = id => document.getElementById(id);
+const fx = (v, n) => Number(v).toFixed(n);
+const sentence = s => s.charAt(0).toUpperCase() + s.slice(1);
+const EASE = "cubic-bezier(.32,.72,0,1)";
+const FULL_HEAT = 0.5;      /* belief that earns a fully saturated node */
+const VIEW = 1000, PAD = 0.07;
+
+let D, incidentIdx = 0, armKey = "adaptive", step = 0, playing = false,
+    hover = null, showMap = true, timer = null, splitPct = 70;
+
+/* ------------------------------------------------------ particle field ---- */
+/* Ported from the Echoes background: same motion and connection lines, in the
+   water blues. Decoration only, and it never encodes data. */
+(function field(){
+  const cv = $("field"), cx = cv.getContext("2d");
+  const COLORS = ["#2E6FA8","#3D8FC4","#1E4E78","#6FA8D8","#BFE9FF","#255C86"];
+  const N = 120, SPEED = 1.4, SIZE = 2, CONN = 130;
+  let mx = innerWidth / 2, my = innerHeight / 2;
+  const resize = () => { cv.width = innerWidth; cv.height = innerHeight; };
+  resize();
+  addEventListener("resize", resize);
+  addEventListener("mousemove", e => { mx = e.clientX; my = e.clientY; });
+  const P = Array.from({length: N}, () => ({
+    x: Math.random() * cv.width, y: Math.random() * cv.height,
+    s: Math.random() * SIZE * 1.5 + 0.5,
+    bx: (Math.random() * 2 - 1) * SPEED, by: (Math.random() * 2 - 1) * SPEED,
+    vx: 0, vy: 0, c: COLORS[Math.floor(Math.random() * COLORS.length)]
+  }));
+  P.forEach(p => { p.vx = p.bx; p.vy = p.by; });
+  (function frame(){
+    requestAnimationFrame(frame);
+    cx.fillStyle = "rgba(0,7,15,.18)";
+    cx.fillRect(0, 0, cv.width, cv.height);
+    for (const p of P) {
+      const dx = p.x - mx, dy = p.y - my, d = Math.hypot(dx, dy);
+      if (d < 120 && d > 0) {
+        const a = Math.atan2(dy, dx), f = (120 - d) / 12;
+        p.vx += Math.cos(a) * f * 0.18; p.vy += Math.sin(a) * f * 0.18;
+      }
+      const cap = SPEED * 2.5;
+      p.vx = Math.max(-cap, Math.min(cap, p.vx)) * 0.97 + p.bx * 0.03;
+      p.vy = Math.max(-cap, Math.min(cap, p.vy)) * 0.97 + p.by * 0.03;
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = cv.width; if (p.x > cv.width) p.x = 0;
+      if (p.y < 0) p.y = cv.height; if (p.y > cv.height) p.y = 0;
+      cx.beginPath(); cx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
+      cx.fillStyle = p.c; cx.fill();
+    }
+    cx.lineWidth = 0.5;
+    for (let i = 0; i < P.length; i++) {
+      const lim = Math.min(P.length, i + 14);
+      for (let j = i + 1; j < lim; j++) {
+        const d = Math.hypot(P[i].x - P[j].x, P[i].y - P[j].y);
+        if (d < CONN) {
+          cx.strokeStyle = "rgba(61,124,148," + ((1 - d / CONN) * 0.17).toFixed(3) + ")";
+          cx.beginPath(); cx.moveTo(P[i].x, P[i].y); cx.lineTo(P[j].x, P[j].y); cx.stroke();
+        }
+      }
+    }
+  })();
+})();
+
+/* ------------------------------------------------------------ geometry ---- */
+let POS = null, VW = 0, VH = 0;
+function project(){
+  const all = D.network.junctions.concat(D.network.sources);
+  const xs = all.map(n => n.x), ys = all.map(n => n.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  /* EPANET is Y-up over arbitrary ranges: normalise into the viewBox and flip Y. */
+  const spanX = (maxX - minX) || 1, spanY = (maxY - minY) || 1;
+  VW = VIEW; VH = VIEW * (spanY / spanX);
+  const scale = (VW * (1 - 2 * PAD)) / spanX;
+  POS = new Map();
+  for (const n of all) {
+    POS.set(n.id, { x: VW * PAD + (n.x - minX) * scale, y: VH * PAD + (maxY - n.y) * scale });
+  }
+}
+
+/* --------------------------------------------------------------- render ---- */
+function incident(){ return D.incidents[incidentIdx]; }
+function arm(){ return incident().arms[armKey]; }
+function steps(){ return arm() ? arm().steps : []; }
+function current(){ return steps()[Math.min(step, steps().length - 1)]; }
+function finished(){ return step >= steps().length - 1; }
+
+function replayableArms(){
+  const label = {randomControl:"random control", maxInfoGain:"max information gain",
+                 adaptive:"adaptive stopping", allGauges:"all gauges"};
+  return Object.keys(incident().arms).map(k => {
+    const m = D.summary.arms.find(a => a.key === k);
+    return { key: k, name: m ? m.name : (label[k] || k), measured: !!m };
+  });
+}
+
+function drawPlot(){
+  if (!showMap) return;
+  const c = current(), net = D.network;
+  const gauges = new Set(net.gauges), inSet = new Set(c.credibleSet);
+  const chance = 1 / net.junctions.length;
+  /* Heat is measured against chance on a fixed scale, never against the current
+     maximum, which would render a flat prior as total confidence. */
+  const heat = p => Math.max(0, Math.min(1, (p - chance) / (FULL_HEAT - chance)));
+  const probs = Object.values(c.posterior), maxP = Math.max(...probs);
+  const ranked = Object.entries(c.posterior).sort((a, b) => b[1] - a[1]);
+  const maxFlow = Math.max(...net.pipes.map(p => Math.abs(p.flow)), 1);
+  let s = "";
+
+  s += '<defs><radialGradient id="peak">' +
+       '<stop offset="0%" stop-color="var(--belief)" stop-opacity=".35"/>' +
+       '<stop offset="100%" stop-color="var(--belief)" stop-opacity="0"/></radialGradient></defs>';
+
+  if (maxP > chance * 2) {
+    const p = POS.get(ranked[0][0]);
+    if (p) s += `<circle cx="${p.x}" cy="${p.y}" r="110" fill="url(#peak)" opacity="${heat(maxP).toFixed(3)}"/>`;
+  }
+
+  let d = "";
+  for (const p of net.pipes) {
+    const a = POS.get(p.from), b = POS.get(p.to);
+    if (!a || !b) continue;
+    d += `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+  }
+  s += `<path d="${d}" stroke="#25505F" stroke-width="2" fill="none"/>`;
+
+  for (const p of net.pipes) {
+    const a = POS.get(p.from), b = POS.get(p.to);
+    if (!a || !b) continue;
+    const dur = 6 - (Math.abs(p.flow) / maxFlow) * 5.2;
+    s += `<line class="flow" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#3D7C94" ` +
+         `stroke-width="2" stroke-dasharray="6 10" style="animation-duration:${dur.toFixed(2)}s"/>`;
+  }
+
+  for (const src of net.sources) {
+    const p = POS.get(src.id);
+    s += `<rect x="${p.x - 6}" y="${p.y - 6}" width="12" height="12" fill="none" stroke="#8FA6B4" stroke-width="1.5"/>` +
+         `<text x="${p.x + 11}" y="${p.y + 4}" fill="#8FA6B4" font-size="13" font-family="monospace">${src.id}</text>`;
+  }
+
+  for (const j of net.junctions) {
+    const p = POS.get(j.id), prob = c.posterior[j.id] || 0, t = heat(prob), r = 5 + t * 9;
+    const fill = `rgb(${Math.round(74 - t * 29)},${Math.round(114 + t * 98)},${Math.round(134 + t * 57)})`;
+    s += `<g data-j="${j.id}" style="cursor:pointer">`;
+    if (t > 0.15) {
+      s += `<circle class="ripple" cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="var(--belief)" ` +
+           `stroke-width="1.5" opacity="0" style="animation:ripple 2.4s ${EASE} infinite;` +
+           `animation-delay:${((+j.id % 7) * 0.3).toFixed(1)}s;transform-origin:${p.x}px ${p.y}px"/>`;
+    }
+    if (gauges.has(j.id)) s += `<circle cx="${p.x}" cy="${p.y}" r="${r + 5}" fill="none" stroke="var(--belief)" stroke-width="1" opacity=".45"/>`;
+    if (inSet.has(j.id)) s += `<circle cx="${p.x}" cy="${p.y}" r="${r + 2.5}" fill="none" stroke="var(--foam)" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`;
+    s += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${fill}"/>`;
+    if (c.probeGauge === j.id) s += `<circle cx="${p.x}" cy="${p.y}" r="${r + 10}" fill="none" stroke="var(--cost)" stroke-width="2"/>`;
+    s += `<circle cx="${p.x}" cy="${p.y}" r="18" fill="transparent"/>`;
+    if (hover === j.id) {
+      s += `<g pointer-events="none"><rect x="${p.x + 14}" y="${p.y - 30}" width="126" height="38" rx="6" fill="#00121A" stroke="rgba(255,255,255,.2)"/>` +
+           `<text x="${p.x + 22}" y="${p.y - 15}" fill="white" font-size="13" font-family="monospace">Junction ${j.id}</text>` +
+           `<text x="${p.x + 22}" y="${p.y + 1}" fill="var(--belief)" font-size="13" font-family="monospace">${(prob * 100).toFixed(1)}% belief</text></g>`;
+    }
+    s += "</g>";
+  }
+
+  if (finished()) {
+    const p = POS.get(incident().trueLeakJunction);
+    if (p) {
+      s += `<g pointer-events="none"><rect x="${p.x - 11}" y="${p.y - 11}" width="22" height="22" fill="none" stroke="#63798C" stroke-width="1.5"/>` +
+           `<text x="${p.x + 16}" y="${p.y - 12}" fill="#63798C" font-size="12" font-family="monospace">Ground truth (evaluation only)</text></g>`;
+    }
+  }
+
+  const plot = $("plot");
+  plot.setAttribute("viewBox", `0 0 ${VW} ${VH}`);
+  plot.innerHTML = s;
+}
+
+function render(){
+  const c = current(), a = arm(), net = D.network, sum = D.summary;
+  const chance = 1 / net.junctions.length;
+  const ranked = Object.entries(c.posterior).sort((x, y) => y[1] - x[1]);
+  const maxP = ranked[0][1];
+  const inSet = new Set(c.credibleSet);
+  const prior = steps()[0].entropyBits;
+  const spent = steps().slice(0, step + 1).filter(s => s.probeGauge).length;
+  const saved = 3 - a.probesUsed;
+
+  $("incident").innerHTML = D.incidents
+    .map((i, k) => `<option value="${k}"${k === incidentIdx ? " selected" : ""}>${i.id} · ${i.leakGpm} gpm</option>`).join("");
+
+  $("arms").innerHTML = replayableArms().map(x =>
+    `<button class="arm${x.key === armKey ? " on" : ""}" data-arm="${x.key}">${sentence(x.name)}` +
+    `${x.measured ? "" : '<span class="only">· replay only</span>'}</button>`).join("");
+
+  $("pips").innerHTML = steps().map((_, i) => `<i class="${i <= step ? "on" : ""}"></i>`).join("");
+  $("play").innerHTML = playing ? "&#10074;&#10074; Pause" : (finished() ? "&#8635; Replay" : "&#9654; Play");
+  $("toggle").textContent = showMap ? "Map on" : "Map off";
+  $("toggle").className = "toggle" + (showMap ? "" : " off");
+  $("mappanel").querySelector(".well").hidden = !showMap;
+
+  /* uncertainty */
+  $("bits").innerHTML = fx(c.entropyBits, 2) + "<s>bits</s>";
+  $("bitsfoot").textContent = "−" + fx(prior - c.entropyBits, 2) + " from " + fx(prior, 2);
+  const hist = steps().slice(0, step + 1).map(s => s.entropyBits);
+  if (hist.length > 1) {
+    const pts = hist.map((v, i) => `${(i / (hist.length - 1) * 120).toFixed(1)},${(32 - v / prior * 32).toFixed(1)}`);
+    $("spark").innerHTML =
+      '<line x1="0" y1="0" x2="120" y2="0" stroke="rgba(255,255,255,.18)" stroke-width="1" stroke-dasharray="3 3"/>' +
+      `<polyline points="${pts.join(" ")}" fill="none" stroke="var(--belief)" stroke-width="2" vector-effect="non-scaling-stroke"/>` +
+      `<circle cx="120" cy="${(32 - hist[hist.length - 1] / prior * 32).toFixed(1)}" r="3" fill="var(--belief)"/>`;
+  } else { $("spark").innerHTML = ""; }
+
+  /* dispatches */
+  $("disp").innerHTML = spent + `<s>of ${a.probesUsed}</s>`;
+  $("dispbars").innerHTML = Array.from({length: Math.max(a.probesUsed, 3)}, (_, i) =>
+    `<i class="${i < spent ? "on" : ""}" style="height:${i < a.probesUsed ? 100 : 34}%"></i>`).join("");
+  $("dispfoot").textContent = saved > 0 ? saved + " fewer than the fixed arms" : "Crews sent to a street";
+
+  /* candidates */
+  const scale = Math.max(maxP, chance * 4);
+  $("cands").innerHTML = ranked.slice(0, 6).map(([id, p]) =>
+    `<div class="cand${hover === id ? " hot" : ""}" data-j="${id}">` +
+    `<span class="id num">${id}</span>` +
+    `<span class="track"><span class="fill" style="transform:scaleX(${(p / scale).toFixed(4)})"></span>` +
+    `<span class="tick" style="left:${(chance / scale * 100).toFixed(2)}%"></span></span>` +
+    `<span class="pct num">${(p * 100).toFixed(1)}%</span>` +
+    (inSet.has(id) ? '<span class="in"></span>' : '<span style="width:6px"></span>') + "</div>").join("");
+
+  /* credible set */
+  $("cset").className = "cset" + (showMap ? "" : " big");
+  $("cset").innerHTML =
+    `<div style="flex:none;padding-top:2px"><div class="lbl">Credible set · 90%</div>` +
+    `<div class="foot num">${c.credibleSet.length} of ${net.junctions.length} still in play</div></div>` +
+    `<div class="chips">` + c.credibleSet.map(id =>
+      `<span class="chip${hover === id ? " hot" : ""}" data-j="${id}">${id}</span>`).join("") + `</div>`;
+
+  /* probe log */
+  $("log").innerHTML = steps().slice(0, step + 1).map((s, i) => {
+    const drop = i > 0 ? steps()[i - 1].entropyBits - s.entropyBits : 0;
+    return `<div class="row num"><span class="i">${i}</span>` +
+      `<span class="${s.probeGauge ? "g" : "p"}">${s.probeGauge ? "Gauge " + s.probeGauge : "Prior"}</span>` +
+      `<span class="p">${s.readingPsi !== null ? fx(s.readingPsi, 1) + " psi" : "n/a"}</span>` +
+      `<span class="b">${i === 0 ? fx(s.entropyBits, 2) + "b" : "−" + fx(drop, 2) + "b"}</span></div>`;
+  }).join("");
+  $("lpg").textContent = c.probeGauge ? "Gauge " + c.probeGauge : "n/a";
+  $("lpp").textContent = c.readingPsi !== null ? fx(c.readingPsi, 2) : "n/a";
+  $("lpb").textContent = c.eigBits !== null ? fx(c.eigBits, 3) : "n/a";
+  $("noise").textContent = "Gauge noise " + sum.noisePsi + " psi";
+
+  /* bottom strip */
+  $("net").textContent = `${net.junctions.length} junctions · ${net.pipes.length} pipes · ${net.gauges.length} gauges`;
+  $("netsub").textContent = `Leak ${incident().leakGpm} gpm · gauge noise ${sum.noisePsi} psi`;
+  $("fixture").hidden = !D.fixture;
+  $("measured").textContent = `Measured over ${sum.nIncidents} incidents`;
+  $("axes").textContent = `Top-5 accuracy · mean crew dispatches · chance ${sum.chancePct}%`;
+  $("cards").innerHTML = sum.arms.map(x =>
+    `<button class="card${x.key === armKey ? " on" : ""}" data-arm="${x.key}">` +
+    `<div class="n">${sentence(x.name)}</div><div class="v num">${x.top5Pct}%<span class="p">${x.meanProbes}p</span></div></button>`).join("") +
+    `<div class="card chance"><div class="n">Chance</div><div class="v num">${sum.chancePct}%<span class="p">n/a</span></div></div>`;
+  $("note").textContent = sum.note || "Reported as measured, against a random control on every incident.";
+
+  drawPlot();
+}
+
+/* -------------------------------------------------------------- controls ---- */
+function stop(){ playing = false; clearTimeout(timer); }
+function tick(){
+  clearTimeout(timer);
+  if (!playing) return;
+  if (finished()) { playing = false; render(); return; }
+  timer = setTimeout(() => { step++; render(); tick(); }, 1500);
+}
+
+document.addEventListener("click", e => {
+  const armBtn = e.target.closest("[data-arm]");
+  if (armBtn) { armKey = armBtn.dataset.arm; step = 0; stop(); render(); return; }
+  if (e.target.closest("#play")) {
+    if (finished() && !playing) { step = 0; playing = true; } else { playing = !playing; }
+    render(); tick(); return;
+  }
+  if (e.target.closest("#stepfwd")) { stop(); step = Math.min(step + 1, steps().length - 1); render(); return; }
+  if (e.target.closest("#toggle")) { showMap = !showMap; render(); return; }
+});
+
+document.addEventListener("mouseover", e => {
+  const t = e.target.closest("[data-j]");
+  const id = t ? t.dataset.j : null;
+  if (id !== hover) { hover = id; render(); }
+});
+
+$("incident").addEventListener("change", e => {
+  incidentIdx = +e.target.value; step = 0; stop(); render();
+});
+
+addEventListener("keydown", e => {
+  if (e.key === " ") { e.preventDefault(); playing = !playing; render(); tick(); }
+  if (e.key === "ArrowRight") { stop(); step = Math.min(step + 1, steps().length - 1); render(); }
+  if (e.key === "ArrowLeft") { stop(); step = Math.max(step - 1, 0); render(); }
+  if (e.key.toLowerCase() === "r") { stop(); step = 0; render(); }
+});
+
+/* draggable split, the same 42-82% range the panes had */
+(function drag(){
+  const div = $("divider"), split = $("split");
+  let on = false;
+  const apply = () => split.style.gridTemplateColumns = `${splitPct}% 14px minmax(0,1fr)`;
+  div.addEventListener("pointerdown", e => { e.preventDefault(); on = true; div.classList.add("drag"); });
+  addEventListener("pointermove", e => {
+    if (!on) return;
+    const r = split.getBoundingClientRect();
+    splitPct = Math.min(82, Math.max(42, (e.clientX - r.left) / r.width * 100));
+    apply();
+  });
+  addEventListener("pointerup", () => { on = false; div.classList.remove("drag"); });
+  div.addEventListener("dblclick", () => { splitPct = 70; apply(); });
+  div.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft") { splitPct = Math.max(42, splitPct - 2); apply(); }
+    if (e.key === "ArrowRight") { splitPct = Math.min(82, splitPct + 2); apply(); }
+  });
+})();
+
+boot.then(data => {
+  D = data;
+  if (!incident().arms[armKey]) armKey = Object.keys(incident().arms)[0];
+  project();
+  render();
+}).catch(() => {
+  $("page").innerHTML = '<div class="panel" style="flex:1;display:grid;place-items:center">' +
+    '<div style="color:var(--ink3)">Loading the network…</div></div>';
+});
+</script>
+</body>
+</html>
