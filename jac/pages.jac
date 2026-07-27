@@ -209,31 +209,84 @@ glob INDEX_HTML: str = """<!doctype html>
 </div>
 
 <script>
-// the same halftone swell the board uses, so the two pages read as one product
+/* Fractal-glass ribbons. The reference background is a still photograph of light
+   refracted through textured glass: long diagonal streaks with hot cores and soft
+   falloff, overlapping into brighter seams. This draws that in canvas so it moves,
+   in the water blues rather than the reference's magenta.
+
+   Each ribbon is one stroke in a rotated frame, so they all share a diagonal. The
+   perpendicular gradient gives the soft edge, `lighter` compositing makes crossings
+   bloom the way overlapping light does, and every ribbon drifts at its own speed so
+   the field never repeats visibly. It encodes nothing. */
 const cv=document.getElementById('swell'),cx=cv.getContext('2d');
+let W=0,H=0;
+function size(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+size();
+addEventListener('resize',size);
+
+const ANG=-0.63;                       // the reference's diagonal, top-right to bottom-left
+const SPAN=2.4;                        // how far ribbons travel before wrapping
+// Deterministic spread rather than Math.random, so the composition is the same every
+// load and the page cannot occasionally boot into an empty-looking frame.
+const RIB=[];
+for(let i=0;i<34;i++){
+  const q=(i*0.6180339887)%1;          // golden-ratio walk: even coverage, no clumping
+  RIB.push({
+    off : q,
+    w   : 5+Math.pow((i*0.41)%1,2)*70, // mostly fine threads, a few broad sheets
+    sp  : 0.008+((i*0.29)%1)*0.030,
+    amp : 18+((i*0.73)%1)*46,
+    ph  : q*6.283,
+    hot : Math.pow((i*0.87)%1,1.6),    // how close the core runs to white
+    a   : 0.11+((i*0.53)%1)*0.42
+  });
+}
+
 const t0=performance.now();
 function frame(){
-  const w=cv.width=innerWidth,h=cv.height=innerHeight,t=(performance.now()-t0)/9000,gap=13;
-  cx.clearRect(0,0,w,h);
-  for(let y=0;y<h;y+=gap)for(let x=0;x<w;x+=gap){
-    const u=x/w,v=y/h;
-    const a=Math.sin(u*9.4+t*1.3+Math.cos(v*5.6+t*.7)*1.5);
-    const b=Math.sin(u*4.6-t*.9+v*8.2);
-    // Ridges never clip to nothing: a trough still emits a faint dot, so the field
-    // reads as water under low light instead of going to black between crests.
-    const n=a*.65+b*.35, band=.34+.66*Math.max(0,n);
-    const fall=(.5+.5*Math.pow(1-v,1.15))*Math.min(1,u*1.1+.5);
-    const r=band*fall*3.2;
-    if(r>.14){
-      const k=Math.min(1,band*fall*1.5);
-      cx.fillStyle=`rgba(${Math.round(62+120*k)},${Math.round(127+110*k)},${Math.round(184+60*k)},${(.11+k*.5).toFixed(3)})`;
-      cx.beginPath();cx.arc(x,y,r,0,6.283);cx.fill();
+  const t=(performance.now()-t0)/1000;
+  cx.clearRect(0,0,W,H);
+  const L=Math.hypot(W,H);
+  cx.save();
+  cx.translate(W/2,H/2);
+  cx.rotate(ANG);
+  cx.globalCompositeOperation='lighter';
+  cx.lineCap='round';
+  for(const r of RIB){
+    const x=(((r.off+t*r.sp)%1)*SPAN-SPAN/2)*L;
+    const wob=Math.sin(t*0.32+r.ph)*r.amp;
+    const cxp=x+wob;
+    // Brightness eases in and out across the sweep so ribbons arrive and leave
+    // instead of popping at the wrap point.
+    const edge=Math.min(1,Math.max(0,1.35-Math.abs(cxp)/(L*0.62)));
+    if(edge<=0.02) continue;
+    const cr=Math.round(56+170*r.hot), cg=Math.round(146+104*r.hot), cb=Math.round(212+43*r.hot);
+    const g=cx.createLinearGradient(cxp-r.w,0,cxp+r.w,0);
+    g.addColorStop(0,'rgba(40,90,150,0)');
+    g.addColorStop(0.5,'rgba('+cr+','+cg+','+cb+','+(r.a*edge).toFixed(3)+')');
+    g.addColorStop(1,'rgba(40,90,150,0)');
+    cx.strokeStyle=g;
+    cx.lineWidth=r.w*2;
+    cx.beginPath();
+    // A slight bow along the length, so the streaks read as refracted rather than ruled.
+    for(let k=0;k<=8;k++){
+      const y=-L*0.75+ (L*1.5)*(k/8);
+      const bx=cxp+Math.sin(y/(L*0.42)+r.ph+t*0.16)*r.amp*0.55;
+      if(k===0) cx.moveTo(bx,y); else cx.lineTo(bx,y);
+    }
+    cx.stroke();
+    // The thin ribbons get a second, narrower pass: a hot core inside the soft body is
+    // what makes light through glass read as light rather than as a painted band.
+    if(r.w<26){
+      cx.strokeStyle='rgba(198,232,252,'+(r.a*edge*0.85).toFixed(3)+')';
+      cx.lineWidth=Math.max(1,r.w*0.42);
+      cx.stroke();
     }
   }
+  cx.restore();
   requestAnimationFrame(frame);
 }
 frame();   // ambient, encodes nothing: runs even when the system asks for less motion
-addEventListener('resize',()=>{cv.width=innerWidth;cv.height=innerHeight});
 </script>
 </body>
 </html>
