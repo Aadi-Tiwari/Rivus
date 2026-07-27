@@ -216,8 +216,7 @@ function frame(){
   }
   requestAnimationFrame(frame);
 }
-if(!matchMedia('(prefers-reduced-motion: reduce)').matches) frame();
-else {cv.width=innerWidth;cv.height=innerHeight;}
+frame();   // ambient, encodes nothing: runs even when the system asks for less motion
 addEventListener('resize',()=>{cv.width=innerWidth;cv.height=innerHeight});
 </script>
 </body>

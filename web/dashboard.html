@@ -182,8 +182,10 @@
   #plot circle.heat{transition:r 220ms var(--ease),fill 220ms var(--ease)}
   #plot circle.ring{transition:r 220ms var(--ease),opacity 220ms var(--ease)}
 
+  /* The ambient layers keep moving even when the system asks for less motion: they
+     are the page's weather, they encode nothing, and the site they replace ran them
+     unconditionally. The data-carrying motion below does respect the setting. */
   @media (prefers-reduced-motion: reduce){
-    #field,#swell{display:none}
     .flow,.ripple{animation:none !important}
     #plot circle{transition:none !important}
   }
@@ -312,7 +314,6 @@ let D, plotKey = "", incidentIdx = 0, armKey = "adaptive", step = 0, playing = f
 /* The landing page's dot field, carried through as living atmosphere: stacked sine
    ridges sampled on a grid, the same shape family as the hero artwork. */
 (function swellField(){
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const cv = $("swell"), cx = cv.getContext("2d");
   const t0 = performance.now();
   (function swell(){

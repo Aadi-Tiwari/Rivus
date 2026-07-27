@@ -202,8 +202,7 @@ function swell(){
   }
   requestAnimationFrame(swell);
 }
-if(!matchMedia('(prefers-reduced-motion: reduce)').matches) swell();
-else { cv.width=innerWidth; cv.height=innerHeight; }
+swell();   // ambient, encodes nothing: runs even when the system asks for less motion
 
 /* ---------------------------- the network figure ---------------------------- */
 const by={}; T.nodes.forEach(n=>by[n.name]=n);
