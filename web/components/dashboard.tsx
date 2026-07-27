@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "./logo";
+import { ParticleBackground } from "./particle-background";
 // Aliased: an unaliased `Map` import shadows the global Map constructor used below.
 import { Map as MapIcon, Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 
@@ -33,15 +34,19 @@ type Replay = {
 const VIEW = 1000;
 const PAD = 0.07;
 const EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
-// Frosted glass over the water field: white/8 fill, hairline white/18 edge, wide blur.
-// Chrome only. The map well below is deliberately opaque, because a probability
-// heatmap read through a blur over moving water is the one thing that must stay crisp.
+// Frosted glass over the particle field: surfaces sit at 50% so the field reads
+// through them. The wide blur is what keeps text legible over moving particles, so
+// it stays even at this transparency.
 const PANEL =
-  "backdrop-blur-2xl bg-white/[0.10] border border-white/[0.20] rounded-2xl shadow-[0_10px_40px_-16px_rgba(0,0,0,0.7)]";
-const WELL = "rounded-xl border border-white/10 bg-[#020A11] overflow-hidden";
+  "backdrop-blur-md bg-[#08161F]/35 border border-white/[0.20] rounded-2xl shadow-[0_10px_40px_-16px_rgba(0,0,0,0.7)]";
+const WELL = "rounded-xl border border-white/10 bg-[#020A11]/35 overflow-hidden";
 // Belief that earns a fully saturated node. Fixed, so heat means the same thing in
 // every frame instead of being relative to whatever the current leader happens to be.
 const FULL_HEAT = 0.5;
+
+// Arm names arrive from the data file in lower case. Capitalise at the edge so the
+// interface reads as written English without editing the evaluation output.
+const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const Label = ({ children }: { children: React.ReactNode }) => (
   <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">{children}</div>
@@ -153,13 +158,10 @@ export function Dashboard() {
 
   const shell = (inner: React.ReactNode) => (
     <div className="h-svh overflow-hidden relative bg-[#00070F]">
-      {/* The frosted-glass template's own background, kept as-is: full-bleed image plus
-          its black scrim. This is what the glass panels above refract. */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/dashboard-background.png')" }}
-      />
-      <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+      {/* Animated particle field in place of the template's static image. This is what
+          the glass panels above refract. */}
+      <ParticleBackground />
+      <div className="absolute inset-0 bg-black/10 pointer-events-none" />
       <div className="relative z-10 h-svh p-3 md:p-4 flex flex-col gap-3">{inner}</div>
       <style jsx global>{`
         @keyframes flow { to { stroke-dashoffset: -16; } }
@@ -179,7 +181,7 @@ export function Dashboard() {
   if (!data || !project || !incident || !arm || !current) {
     return shell(
       <div className={`${PANEL} flex-1 grid place-items-center`}>
-        <div className="font-mono text-sm text-white/50">loading network…</div>
+        <div className="font-mono text-sm text-white/50">Loading the network…</div>
       </div>
     );
   }
@@ -267,9 +269,9 @@ export function Dashboard() {
       </div>
       {big && (
         <p className="font-mono text-[11px] leading-relaxed text-white/40 mt-5 max-w-[540px]">
-          These are the junctions the pressure evidence cannot separate. Picking one of them is a
-          guess, so the set is the answer we report, and it is what {junctions.length} candidates
-          narrowed to on {probesSoFar} {probesSoFar === 1 ? "reading" : "readings"}.
+          These are the junctions the pressure evidence cannot separate. Picking one of them would
+          be a guess, so the set is the answer we report. It is what {junctions.length} candidates
+          narrowed to after {probesSoFar} {probesSoFar === 1 ? "reading" : "readings"}.
         </p>
       )}
     </div>
@@ -285,7 +287,7 @@ export function Dashboard() {
           {junctions.length} junctions · {pipes.length} pipes · {gauges.length} gauges
         </div>
         <div className="font-mono text-[10px] text-white/30 mt-0.5 tabular-nums">
-          leak {incident.leakGpm} gpm · gauge noise {data.summary.noisePsi} psi
+          Leak {incident.leakGpm} gpm · gauge noise {data.summary.noisePsi} psi
         </div>
       </div>
 
@@ -301,7 +303,7 @@ export function Dashboard() {
         <div className="flex items-baseline justify-between gap-3 mb-1.5">
           <Label>Measured over {data.summary.nIncidents} incidents</Label>
           <span className="font-mono text-[10px] text-white/30">
-            top5 accuracy · mean crew dispatches · chance {data.summary.chancePct}%
+            Top-5 accuracy · mean crew dispatches · chance {data.summary.chancePct}%
           </span>
         </div>
         <div className="grid grid-cols-5 gap-2">
@@ -323,14 +325,14 @@ export function Dashboard() {
                 }`}
               >
                 <div className={`font-mono text-[10px] truncate ${a.isChance ? "text-white/30" : on ? "text-[var(--belief)]" : "text-white/50"}`}>
-                  {a.name}
+                  {sentenceCase(a.name)}
                 </div>
                 <div className="flex items-baseline gap-1.5 mt-0.5 font-mono tabular-nums">
                   <span className={`text-lg ${a.isChance ? "text-white/30" : on ? "text-[var(--belief)]" : "text-white/80"}`}>
                     {a.top5Pct}%
                   </span>
                   <span className={`text-[10px] ${a.isChance ? "text-white/25" : "text-[var(--cost)]"}`}>
-                    {a.isChance ? "—" : `${a.meanProbes}p`}
+                    {a.isChance ? "n/a" : `${a.meanProbes}p`}
                   </span>
                 </div>
               </button>
@@ -420,7 +422,7 @@ export function Dashboard() {
                   : "border-white/10 text-white/50 hover:text-white hover:bg-white/[0.06]"
               }`}
             >
-              {a.name}
+              {sentenceCase(a.name)}
             </button>
           ))}
         </div>
@@ -578,7 +580,7 @@ export function Dashboard() {
                     {isHover && (
                       <g pointerEvents="none">
                         <rect x={p.x + 14} y={p.y - 30} width={116} height={38} rx={6} fill="#00121A" stroke="rgba(255,255,255,0.2)" />
-                        <text x={p.x + 22} y={p.y - 15} fill="white" fontSize={13} fontFamily="monospace">junction {j.id}</text>
+                        <text x={p.x + 22} y={p.y - 15} fill="white" fontSize={13} fontFamily="monospace">Junction {j.id}</text>
                         <text x={p.x + 22} y={p.y + 1} fill="var(--belief)" fontSize={13} fontFamily="monospace">
                           {(prob * 100).toFixed(1)}% belief
                         </text>
@@ -593,7 +595,7 @@ export function Dashboard() {
                 return (
                   <g pointerEvents="none">
                     <rect x={p.x - 11} y={p.y - 11} width={22} height={22} fill="none" stroke="#63798C" strokeWidth={1.5} />
-                    <text x={p.x + 16} y={p.y - 12} fill="#63798C" fontSize={12} fontFamily="monospace">ground truth (eval only)</text>
+                    <text x={p.x + 16} y={p.y - 12} fill="#63798C" fontSize={12} fontFamily="monospace">Ground truth (evaluation only)</text>
                   </g>
                 );
               })()}
@@ -604,11 +606,11 @@ export function Dashboard() {
 
           {/* Legend */}
           <div className="shrink-0 flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2.5 font-mono text-[10px] text-white/45">
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[var(--belief)]" /> belief mass</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-[var(--belief)]/60" /> gauge</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-dashed border-[var(--foam)]/70" /> in credible set</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--cost)]" /> probed now</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 border border-[#8FA6B4]" /> source</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[var(--belief)]" /> Belief mass</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-[var(--belief)]/60" /> Gauge</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-dashed border-[var(--foam)]/70" /> In credible set</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--cost)]" /> Probed now</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 border border-[#8FA6B4]" /> Source</span>
           </div>
 
         </section>
@@ -656,7 +658,7 @@ export function Dashboard() {
                 ))}
               </div>
               <div className="font-mono text-[10px] text-white/40 mt-1">
-                {savedVsFixed > 0 ? `${savedVsFixed} fewer than fixed-3` : "crews sent to a street"}
+                {savedVsFixed > 0 ? `${savedVsFixed} fewer than the fixed arms` : "Crews sent to a street"}
               </div>
             </div>
           </div>
@@ -692,7 +694,7 @@ export function Dashboard() {
                   <span className="font-mono text-[11px] text-white/70 tabular-nums w-11 text-right">
                     {(p * 100).toFixed(1)}%
                   </span>
-                  {inSet.has(id) && <span className="h-1.5 w-1.5 rounded-full bg-[var(--foam)]" title="in credible set" />}
+                  {inSet.has(id) && <span className="h-1.5 w-1.5 rounded-full bg-[var(--foam)]" title="In the credible set" />}
                 </div>
               ))}
             </div>
@@ -711,9 +713,9 @@ export function Dashboard() {
                   <div key={i} className="flex items-center gap-2 font-mono text-[11px] tabular-nums">
                     <span className="text-white/30 w-4">{i}</span>
                     <span className={s.probeGauge ? "text-white/75" : "text-white/40"}>
-                      {s.probeGauge ? `gauge ${s.probeGauge}` : "prior"}
+                      {s.probeGauge ? `Gauge ${s.probeGauge}` : "Prior"}
                     </span>
-                    <span className="text-white/45">{s.readingPsi !== null ? `${s.readingPsi.toFixed(1)} psi` : "—"}</span>
+                    <span className="text-white/45">{s.readingPsi !== null ? `${s.readingPsi.toFixed(1)} psi` : "n/a"}</span>
                     <span className="ml-auto text-[var(--belief)]">
                       {i === 0 ? `${s.entropyBits.toFixed(2)}b` : `−${drop.toFixed(2)}b`}
                     </span>
@@ -725,24 +727,24 @@ export function Dashboard() {
               <Label>Last probe</Label>
               <div className="grid grid-cols-3 gap-2 mt-1.5 font-mono tabular-nums">
                 <div>
-                  <div className="text-sm text-white/85">{current.probeGauge ? `gauge ${current.probeGauge}` : "—"}</div>
-                  <div className="text-[10px] text-white/35">read</div>
+                  <div className="text-sm text-white/85">{current.probeGauge ? `Gauge ${current.probeGauge}` : "n/a"}</div>
+                  <div className="text-[10px] text-white/35">Read</div>
                 </div>
                 <div>
                   <div className="text-sm text-white/85">
-                    {current.readingPsi !== null ? current.readingPsi.toFixed(2) : "—"}
+                    {current.readingPsi !== null ? current.readingPsi.toFixed(2) : "n/a"}
                   </div>
                   <div className="text-[10px] text-white/35">psi</div>
                 </div>
                 <div>
                   <div className="text-sm text-[var(--belief)]">
-                    {current.eigBits !== null ? current.eigBits.toFixed(3) : "—"}
+                    {current.eigBits !== null ? current.eigBits.toFixed(3) : "n/a"}
                   </div>
-                  <div className="text-[10px] text-white/35">bits expected</div>
+                  <div className="text-[10px] text-white/35">Bits expected</div>
                 </div>
               </div>
               <div className="font-mono text-[10px] text-white/30 mt-2">
-                gauge noise {data.summary.noisePsi} psi
+                Gauge noise {data.summary.noisePsi} psi
               </div>
             </div>
           </div>

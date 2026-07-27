@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { GL } from "./gl";
-import { Pill } from "./pill";
 import { Button } from "./ui/button";
 import { useState } from "react";
 
@@ -13,7 +12,6 @@ export function Hero() {
       <GL hovering={hovering} />
 
       <div className="text-center relative">
-        <Pill className="mb-6">22 JUNCTIONS · 43 PIPES · 8 GAUGES</Pill>
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-sentient">
           Find the leak <br />
           without <i className="font-light">guessing</i>
