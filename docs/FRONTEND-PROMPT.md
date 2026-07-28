@@ -8,7 +8,7 @@ It is written to be decision-complete: the implementer should have no open choic
 Build the demo frontend for **Rivus**, a water-distribution leak localization
 system. It runs EPANET hydraulics over a real benchmark network, takes pressure
 readings from a small set of gauges, and maintains a Bayesian posterior over which
-junction is leaking. This frontend is the stage demo for a hackathon judging panel.
+junction is leaking. This frontend is the demo surface a reviewer sees.
 
 ## The single most important constraint
 
@@ -110,7 +110,7 @@ Single full-viewport screen, three regions, no scrolling:
    - Credible set: the junction ids currently in the 90% set, as chips, count shown.
    - Last probe: gauge id, reading in psi, EIG in bits.
    - Below a divider, the four-arm summary table from `summary.arms`, with the
-     chance line drawn in so a judge can see what beating chance would look like.
+     chance line drawn in so a reader can see what beating chance would look like.
 
 ## The network SVG
 

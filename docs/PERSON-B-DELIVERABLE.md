@@ -1,8 +1,15 @@
 # Person B deliverable, written 12:20 Jul 26
 
+> **Superseded on the numbers.** The reporting table near the end carries the
+> pre-filled "3.92 / 46.7%" random control and "2.22 / 63.8% / 20%" information
+> gain rows. Those were withdrawn later the same day once the non-circularity
+> gate showed the evidence was not diverging from the forward model. The README
+> holds the result that replaced them. The method, the arm design and the
+> honesty rules here still stand.
+
 ## Read this first: what I could and could not do
 
-**The repo is not on this machine.** It lives in the Wizard Hackathon working
+**The repo is not on this machine.** It lives in the working
 folder on Abhinav's Mac, under his home directory. I
 searched this whole Windows profile and found no `.jac` files except VS
 Code's bundled examples. So I could not edit `jac/simulate.jac`,
@@ -30,7 +37,7 @@ and `t2.jac`, reproduce it.
 
 # JOB 1: prove the non-circularity, do not assert it
 
-The risk a judge will probe: if diagnosis inverts the same simulator that
+The risk a reviewer will probe: if diagnosis inverts the same simulator that
 produced the evidence, the result is circular and meaningless. Your
 defence is that `StageIncident` perturbs demands at 8% CV and roughness
 at 10% CV. That defence is only real if the perturbed and nominal

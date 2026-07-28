@@ -43,7 +43,7 @@ of the time. That is the defensible operating point.
 
 **Check this on your build before you quote 20% exact and 63.8% top-5.**
 If those numbers come from a weaker perturbation than the gate requires,
-that is precisely the question a judge will ask. My network, gauge
+that is precisely the question a reviewer will ask. My network, gauge
 placement and perturbation code all differ from yours, so this is a
 warning to verify, not a verdict on your numbers.
 

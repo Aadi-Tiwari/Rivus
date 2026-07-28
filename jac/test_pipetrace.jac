@@ -181,7 +181,7 @@ def the_backup_plan_is_accepted() -> None {
 
 def restored_pressure_never_exceeds_baseline() -> None {
     """A plan that raises pressure above the undisturbed baseline would be a modelling
-    artefact, and a judge would rightly ask why closing a pipe raised pressure.""";
+    artefact, and a reviewer would rightly ask why closing a pipe raised pressure.""";
     setup_once();
     r = root spawn ScreenIsolation(leak="27", use_backup=True, name="with backup");
     expect(r.critical_psi <= r.baseline_psi);
