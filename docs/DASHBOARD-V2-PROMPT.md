@@ -1,6 +1,6 @@
 # Rivus dashboard v2 build prompt
 
-Paste everything below the line into a coding agent (Claude Code, Cursor, Codex).
+Reference specification for the interface.
 It is written to be decision-complete: the implementer should have no open choices.
 
 The existing `FRONTEND-PROMPT.md` built v1. This document supersedes it for the

@@ -1,6 +1,6 @@
 # Rivus frontend build prompt
 
-Paste everything below the line into a coding agent (Claude Code, Cursor, Codex).
+Reference specification for the interface.
 It is written to be decision-complete: the implementer should have no open choices.
 
 ---

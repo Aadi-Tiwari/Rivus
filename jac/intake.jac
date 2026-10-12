@@ -16,10 +16,11 @@ straight into the posterior and corrupt every number downstream.
 include network;
 
 import re;
+import os;
 import from byllm.llm { Model }
 
 glob NOTE_MODEL = Model(model_name="gpt-4o-mini");
-glob LLM_AVAILABLE: dict = {"ok": True, "why": ""};
+glob LLM_AVAILABLE: dict = {"ok": bool(os.environ.get("OPENAI_API_KEY")), "why": "", "announced": False};
 
 
 obj FieldNote {
@@ -92,6 +93,10 @@ def parse_note(note: str, known_nodes: list) -> FieldNote {
             print(f"  [intake] FALLING BACK to the deterministic parser — "
                   f"readings below are regex-extracted, not model-inferred");
         }
+    }
+    if not LLM_AVAILABLE["announced"] {
+        print("  [intake] using the deterministic parser; no model inference is claimed");
+        LLM_AVAILABLE["announced"] = True;
     }
     return parse_note_fallback(note, known_nodes);
 }
